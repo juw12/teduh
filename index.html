@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Teduh: a calm sky village, free in your browser</title>
+  <meta name="description" content="A cozy solarpunk life sim in your browser. Farm, fish, craft with sun and wind power, decorate your island and finish community projects with friends. Free, no account, no shop, works offline.">
+  <meta name="theme-color" content="#1f3a33">
+  <meta property="og:title" content="Teduh: a calm sky village">
+  <meta property="og:description" content="Farm, fish and build with sun and wind on floating islands. Free, no account, no shop, works offline.">
+  <meta property="og:image" content="https://juw12.github.io/teduh/docs/media/banner.jpg">
+  <meta property="og:url" content="https://juw12.github.io/teduh/">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/style.css?v=1.0.0">
+</head>
+<body>
+  <canvas id="scene" aria-label="Teduh game world"></canvas>
+
+  <div id="boot" class="boot" role="status">Teduh</div>
+
+  <section id="title" class="title" hidden></section>
+
+  <div id="hud" class="hud" hidden>
+    <header class="hud-top">
+      <div class="status" role="group" aria-label="Status">
+        <span class="status-cell time"><span id="weatherIcon" class="ico"></span><strong id="clock">06:00</strong><span id="dayLabel" class="muted">Day 1</span><svg id="sunPath" class="sun-path" viewBox="0 0 72 24" aria-hidden="true"><path class="sun-track" d="M4 21 Q36 -9 68 21"/><line class="sun-horizon" x1="0" y1="21" x2="72" y2="21"/><circle id="sunDot" class="sun-dot" cx="4" cy="21" r="4"/></svg></span>
+        <span class="status-cell place"><span id="placeLabel"></span></span>
+        <span id="energy" class="status-cell energy" role="meter" aria-label="Energy">
+          <span id="energyIcon" class="ico"></span>
+          <span class="meter"><span id="energyFill"></span></span>
+          <span id="energyText" class="num">0 / 20</span>
+          <span id="energyTrend" class="muted small"></span>
+        </span>
+      </div>
+      <div class="wallet"><span id="coinIcon" class="ico"></span><strong id="coins" class="num">0</strong><span id="coinsUnit" class="muted">coins</span></div>
+    </header>
+
+    <button id="goal" class="goal" type="button">
+      <span class="goal-top"><span id="goalKicker" class="kicker">Goal</span><span id="goalCount" class="muted small"></span></span>
+      <strong id="goalText"></strong>
+      <span id="goalHint" class="goal-hint"></span>
+    </button>
+
+    <div id="buffs" class="buffs" aria-live="polite"></div>
+
+    <div class="cam" role="group" aria-label="Camera">
+      <button id="camLeft" class="icon-btn" type="button" aria-label="Turn camera left"></button>
+      <button id="camRight" class="icon-btn" type="button" aria-label="Turn camera right"></button>
+      <button id="zoomIn" class="icon-btn" type="button" aria-label="Zoom in"></button>
+      <button id="zoomOut" class="icon-btn" type="button" aria-label="Zoom out"></button>
+    </div>
+
+    <button id="actionBtn" class="action-btn" type="button" hidden>
+      <span class="action-text"><strong id="actionLabel"></strong><span id="actionSub"></span></span>
+      <kbd>E</kbd>
+    </button>
+
+    <nav id="dock" class="dock" aria-label="Menu"></nav>
+  </div>
+
+  <div id="buildbar" class="buildbar" hidden></div>
+
+  <div id="fishing" class="fishing" hidden>
+    <div class="fish-card" role="dialog" aria-labelledby="fishTitle">
+      <strong id="fishTitle">Fishing</strong>
+      <p id="fishHint" class="muted"></p>
+      <div class="fish-track"><span id="fishZone" class="fish-zone"></span><span id="fishMarker" class="fish-marker"></span></div>
+      <div id="fishTries" class="fish-tries"></div>
+      <div class="btn-row">
+        <button id="fishBtn" class="btn primary" type="button">Reel in</button>
+        <button id="fishCancel" class="btn ghost" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="panel" class="panel">
+    <header class="panel-head">
+      <h2 id="panelTitle" tabindex="-1"></h2>
+      <button id="panelClose" class="icon-btn" type="button" aria-label="Close"></button>
+    </header>
+    <div id="panelBody" class="panel-body"></div>
+  </dialog>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+  <noscript>Teduh needs JavaScript to run.</noscript>
+  <script type="module" src="js/main.js?v=1.0.0"></script>
+</body>
+</html>
