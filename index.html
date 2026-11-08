@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="css/style.css?v=1.2.0">
+  <link rel="stylesheet" href="css/style.css?v=1.3.0">
 </head>
 <body>
   <canvas id="scene" aria-label="Teduh game world"></canvas>
@@ -27,7 +27,7 @@
   <div id="hud" class="hud" hidden>
     <header class="hud-top">
       <div class="status" role="group" aria-label="Status">
-        <span class="status-cell time"><span id="weatherIcon" class="ico"></span><strong id="clock">06:00</strong><span id="dayLabel" class="muted">Day 1</span><svg id="sunPath" class="sun-path" viewBox="0 0 72 24" aria-hidden="true"><path class="sun-track" d="M4 21 Q36 -9 68 21"/><line class="sun-horizon" x1="0" y1="21" x2="72" y2="21"/><circle id="sunDot" class="sun-dot" cx="4" cy="21" r="4"/></svg></span>
+        <span class="status-cell time"><span id="weatherIcon" class="ico"></span><strong id="clock">06:00</strong><span id="dayLabel" class="muted">Day 1</span></span>
         <span class="status-cell place"><span id="placeLabel"></span></span>
         <span id="energy" class="status-cell energy" role="meter" aria-label="Energy">
           <span id="energyIcon" class="ico"></span>
@@ -40,7 +40,8 @@
     </header>
 
     <button id="goal" class="goal" type="button">
-      <span class="goal-top"><span id="goalKicker" class="kicker">Goal</span><span id="goalCount" class="muted small"></span></span>
+      <span class="goal-top"><span id="goalKicker" class="kicker">Goal</span><span id="goalCount" class="goal-count"></span></span>
+      <span class="goal-bar" aria-hidden="true"><span id="goalBar"></span></span>
       <strong id="goalText"></strong>
       <span id="goalHint" class="goal-hint"></span>
     </button>
@@ -48,10 +49,20 @@
     <div id="buffs" class="buffs" aria-live="polite"></div>
 
     <div class="cam" role="group" aria-label="Camera">
-      <button id="camLeft" class="icon-btn" type="button" aria-label="Turn camera left"></button>
-      <button id="camRight" class="icon-btn" type="button" aria-label="Turn camera right"></button>
-      <button id="zoomIn" class="icon-btn" type="button" aria-label="Zoom in"></button>
-      <button id="zoomOut" class="icon-btn" type="button" aria-label="Zoom out"></button>
+      <div class="cam-group">
+        <div class="cam-btns">
+          <button id="camLeft" class="cam-btn" type="button" aria-label="Turn camera left" title="Turn camera left (Q)"></button>
+          <button id="camRight" class="cam-btn" type="button" aria-label="Turn camera right" title="Turn camera right (R)"></button>
+        </div>
+        <span class="cam-label" data-i18n="camTurn">Turn</span>
+      </div>
+      <div class="cam-group cam-zoom">
+        <div class="cam-btns">
+          <button id="zoomOut" class="cam-btn" type="button" aria-label="Zoom out" title="Zoom out"></button>
+          <button id="zoomIn" class="cam-btn" type="button" aria-label="Zoom in" title="Zoom in"></button>
+        </div>
+        <span class="cam-label" data-i18n="camZoom">Zoom</span>
+      </div>
     </div>
 
     <button id="actionBtn" class="action-btn" type="button" hidden>
@@ -88,6 +99,6 @@
   <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
 
   <noscript>Teduh needs JavaScript to run.</noscript>
-  <script type="module" src="js/main.js?v=1.2.0"></script>
+  <script type="module" src="js/main.js?v=1.3.0"></script>
 </body>
 </html>

@@ -213,13 +213,26 @@ function buildHead(head, L, j) {
   head.add(skull, jaw, browRidge);
 
   // nose
-  const bridge = part(capsule(0.0085, 0.036), skin, 0, -0.004, 0.097, false);
-  bridge.rotation.x = 0.42;
-  bridge.scale.set(1, 1, 0.8);
-  const tip = part(sphere(0.0135, 16, 12), skin, 0, -0.027, 0.106, false);
-  tip.scale.set(1.2, 0.85, 0.95);
-  const wingGeo = sphere(0.0085, 12, 8);
-  head.add(bridge, tip, part(wingGeo, skin, 0.012, -0.031, 0.1, false), part(wingGeo, skin, -0.012, -0.031, 0.1, false));
+  // one long bridge that runs into a soft tip; the nostril wings sit back so the nose reads as one form
+  const bridge = part(capsule(0.0072, 0.044), skin, 0, -0.003, 0.095, false);
+  bridge.rotation.x = -0.36; // top tucked into the brow, bottom forward into the tip
+  bridge.scale.set(1, 1, 0.85);
+  const tip = part(sphere(0.0118, 20, 14), skin, 0, -0.027, 0.105, false);
+  tip.scale.set(1.1, 0.88, 0.95);
+  const wingGeo = sphere(0.0078, 14, 10);
+  const wings = [1, -1].map((side) => {
+    const wing = part(wingGeo, skin, side * 0.0108, -0.0305, 0.0955, false);
+    wing.scale.set(1, 0.82, 0.85);
+    return wing;
+  });
+  head.add(bridge, tip, ...wings);
+  // a soft warmth on the cheeks keeps the face from looking flat
+  const blush = mat(mix(skinTone, '#d4705c', 0.3), 'skin', { transparent: true, opacity: 0.35, depthWrite: false });
+  [1, -1].forEach((side) => {
+    const cheek = part(sphere(0.02, 16, 12), blush, side * 0.05, -0.022, 0.074, false);
+    cheek.scale.set(1, 0.68, 0.5);
+    head.add(cheek);
+  });
 
   // ears
   const earGeo = sphere(0.026, 14, 10);
@@ -262,22 +275,33 @@ function buildHead(head, L, j) {
   });
 
   // brows
-  const browGeo = capsule(0.0046, 0.03);
+  // brows: a thin arch that tapers into the skin at the outer end
+  const BROW_ARC = 1.25;
+  const browGeo = geo('browArc', () => new THREE.TorusGeometry(0.02, 0.0031, 6, 16, BROW_ARC));
+  const browMat = mat(shade(L.hairColor, -0.08), 'hair');
   [1, -1].forEach((side) => {
-    const brow = part(browGeo, mat(L.hair === 'bald' || L.hair === 'hijab' ? shade(L.hairColor, 0) : L.hairColor, 'hair'), side * 0.037, 0.054, 0.1, false);
-    brow.rotation.z = Math.PI / 2 + side * 0.12;
+    const brow = part(browGeo, browMat, side * 0.036, 0.0425, 0.0985, false);
+    brow.rotation.z = Math.PI / 2 - BROW_ARC / 2 - side * 0.1;
+    brow.scale.set(1, 0.62, 1);
     head.add(brow);
   });
 
   // lips
   const lipColor = mix(skinTone, '#9a3f37', 0.35);
   const lipForward = L.facial === 'beard' ? 0.007 : 0;
-  const upper = part(capsule(0.0045, 0.022), mat(lipColor, 'skin'), 0, -0.0535, 0.093 + lipForward, false);
-  upper.rotation.z = Math.PI / 2;
-  upper.scale.set(1, 1, 0.8);
-  const lower = part(capsule(0.0058, 0.016), mat(shade(lipColor, 0.05), 'skin'), 0, -0.0605, 0.091 + lipForward, false);
-  lower.rotation.z = Math.PI / 2;
-  lower.scale.set(1, 1, 0.8);
+  // upper lip as two halves meeting in a soft cupid's bow; a fuller, flatter lower lip
+  const upperMat = mat(lipColor, 'skin');
+  const upperGeo = capsule(0.0036, 0.011);
+  const upperHalves = [1, -1].map((side) => {
+    const half = part(upperGeo, upperMat, side * 0.0068, -0.0532, 0.0925 + lipForward, false);
+    half.rotation.z = Math.PI / 2 - side * 0.2;
+    half.scale.set(1, 1, 0.75);
+    return half;
+  });
+  const lower = part(sphere(0.0125, 20, 12), mat(shade(lipColor, 0.05), 'skin'), 0, -0.0606, 0.0895 + lipForward, false);
+  lower.scale.set(1.02, 0.44, 0.52);
+  const upper = new THREE.Group();
+  upper.add(...upperHalves);
   const line = part(geo('mouthline', () => new THREE.BoxGeometry(0.026, 0.0014, 0.003)), mat(shade(lipColor, -0.45), 'dark'), 0, -0.0572, 0.0965 + lipForward, false);
   head.add(upper, lower, line);
 

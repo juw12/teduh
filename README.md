@@ -84,7 +84,7 @@ What Loftia does better: a large shared world, many more activities, professiona
 | Area | What you can do |
 |---|---|
 | Character creator | Live 3D turntable with body and face views; build, 5 heights, 3 face shapes, 8 skin tones, eye colour, 10 hairstyles (including hijab, bun and curls), hair colour, facial hair, 5 tops (tee, long sleeve, tank, batik, jacket), 4 bottoms (trousers, shorts, skirt, sarong), cloth and shoe colours; 6 ready-made starting looks; change it any time in Settings |
-| How to play guide | Five illustrated steps shown before your first game (skippable) and reopenable from the title screen or Settings |
+| How to play guide | Five steps pictured with real in-game renders, shown before your first game (skippable) and reopenable from the title screen or Settings |
 | Islands | Home Isle, Market Isle, Grove Isle (after the sky bridge) and Reef Isle (after the reef dock), with a day and night cycle and rain |
 | Gathering | Trees, rocks, scrap piles, bushes and berry bushes that regrow |
 | Farming | Planters, 4 crops, watering, compost for faster growth, sprinklers; crops keep growing while you are away (up to 30 minutes) |
@@ -134,6 +134,7 @@ from the network. Fonts (Fraunces, Figtree; SIL Open Font License) are bundled f
 | `js/ui.js`, `js/i18n.js` | Interface and English/Indonesian text |
 | `js/net.js` | Peer-to-peer rooms |
 | `tests/run_tests.py` | Browser test suite (Playwright) |
+| `tests/guide_shots.py` | Re-renders the How to play pictures from the game itself |
 
 Run locally: `python -m http.server` in this folder, then open `http://localhost:8000/`.
 Run the tests: `python tests/run_tests.py` (needs `pip install playwright` and Chrome).

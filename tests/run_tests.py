@@ -288,6 +288,8 @@ def run(args):
 
         # G2: a new player sees the how-to-play guide before the game, can step through and skip it
         check("guide shows before the game starts", page.locator("#guide").is_visible() and not page.locator("#hud").is_visible())
+        page.wait_for_function("() => { const i = document.querySelector('#guide .guide-art img'); return i && i.complete; }", timeout=20000)
+        check("guide picture is a loaded in-game render", page.evaluate("() => { const i = document.querySelector('#guide .guide-art img'); return !!i && i.naturalWidth >= 640 && /assets\\/guide\\//.test(i.src); }"))
         steps = 1
         for _ in range(8):
             if not page.locator("#guide").is_visible() or "begin" in page.inner_text("#guideNext").lower() or "next" not in page.inner_text("#guideNext").lower():
@@ -350,6 +352,30 @@ def run(args):
         check("E opens the workbench", page.locator("#panel").is_visible() and "Workbench" in page.inner_text("#panelTitle"))
         if shots:
             page.screenshot(path=str(shots / "panel-workbench-1280.png"))
+        # G2/G5 on the rendered DOM: no emoji in any visible text, and text contrast meets WCAG AA
+        dom_check = page.evaluate("""() => {
+          const emoji = /[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{1F000}-\\u{1F2FF}]/u;
+          const hasEmoji = emoji.test(document.body.innerText);
+          const parse = (c) => { const m = c.match(/[\\d.]+/g) || [0, 0, 0, 0]; return [+m[0], +m[1], +m[2], m[3] === undefined ? 1 : +m[3]]; };
+          const lum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+          const bgOf = (el) => { let base = [248, 243, 232]; const stack = []; for (let n = el; n && n !== document.documentElement; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c[3] > 0) { stack.push(c); if (c[3] >= 0.95) break; } } stack.reverse().forEach((c) => { base = base.map((v, i) => v * (1 - c[3]) + c[i] * c[3]); }); return base; };
+          const fails = [];
+          document.querySelectorAll('#panel *').forEach((el) => {
+            const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+            if (!own || !el.offsetParent || el.closest(':disabled')) return;
+            const st = getComputedStyle(el);
+            const fg = parse(st.color);
+            const bg = bgOf(el);
+            const a = lum(fg), b = lum(bg);
+            const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            const size = parseFloat(st.fontSize);
+            const need = size >= 24 || (size >= 18.66 && +st.fontWeight >= 700) ? 3 : 4.5;
+            if (ratio < need) fails.push(`${el.className || el.tagName}: ${ratio.toFixed(2)} '${el.textContent.trim().slice(0, 20)}'`);
+          });
+          return { hasEmoji, fails: fails.slice(0, 6) };
+        }""")
+        check("no emoji in the rendered interface", not dom_check["hasEmoji"])
+        check("workbench text meets WCAG AA contrast", not dom_check["fails"], dom_check["fails"])
         page.evaluate("() => document.getElementById('panel').close()")
 
         # G4: the look saves, survives a reload and is sanitised everywhere

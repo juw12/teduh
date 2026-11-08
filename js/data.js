@@ -1,7 +1,7 @@
 // Teduh game content. Everything the rules (state.js) and the world (world.js) need lives here,
 // so balancing the game means editing numbers in one file.
 
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 export const DAY_LENGTH = 600; // seconds of play per in-game day (10 minutes)
 export const START_TIME_OF_DAY = 0.3; // a new save starts in the early morning
 

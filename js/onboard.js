@@ -1,6 +1,5 @@
 // First-time flow: an illustrated, skippable how-to-play guide, then the character creator with a live 3D
-// preview. Both can be reopened from Settings. Text comes from i18n; drawings are inline SVG in the same
-// line style as the HUD icons, so nothing is downloaded.
+// preview. Both can be reopened from Settings. Text comes from i18n; pictures are small in-game renders.
 
 import { h, $ } from './ui.js';
 import { t } from './i18n.js';
@@ -10,30 +9,16 @@ import {
   CLOTH_COLORS, SHOE_COLORS, STARTER_LOOKS, sanitizeLook, randomLook, sameLook,
 } from './look.js';
 
-// ---------- illustrations (320 x 180, ink lines, one accent) ----------
-const INK = '#23302a';
-const ACC = '#2f5d4a';
-const SUN = '#c9951a';
-const PAPER = '#efe7d6';
-const SKY = '#d7e9ef';
-const art = (body) => `<svg viewBox="0 0 320 180" role="img" aria-hidden="true" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="320" height="180" rx="10" fill="${SKY}" stroke="none"/><ellipse cx="160" cy="150" rx="140" ry="22" fill="#9fb77a" stroke="none"/>${body}</svg>`;
-const person = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-58" r="9" fill="#c48a62"/><path d="M-9 -64 q9 -10 18 0" stroke="#3a2518" stroke-width="5"/><path d="M-11 -46 h22 l3 26 h-28z" fill="${ACC}"/><path d="M-8 -20 l-2 20 M8 -20 l2 20"/><path d="M-11 -44 l-7 20 M11 -44 l7 20"/></g>`;
-const key = (x, y, label, w = 26) => `<g><rect x="${x}" y="${y}" width="${w}" height="26" rx="5" fill="#fffdf8"/><text x="${x + w / 2}" y="${y + 18}" text-anchor="middle" font-family="Figtree, sans-serif" font-size="13" font-weight="700" fill="${INK}" stroke="none">${label}</text></g>`;
-const tree = (x, y) => `<g transform="translate(${x} ${y})"><path d="M0 0 v-30" stroke="#6b4a2e" stroke-width="7"/><circle cx="0" cy="-48" r="24" fill="#4f7d47"/><circle cx="-14" cy="-36" r="14" fill="#5d8c52"/></g>`;
-const ILLUSTRATIONS = [
-  art(`${person(110, 150)}<path d="M150 120 q30 -14 60 -4" stroke-dasharray="5 6"/><circle cx="222" cy="118" r="9" fill="#fffdf8"/><circle cx="222" cy="118" r="3" fill="${INK}"/>${key(236, 34, 'W')}${key(208, 64, 'A')}${key(236, 64, 'S')}${key(264, 64, 'D')}`),
-  art(`${tree(220, 150)}${person(150, 152)}<rect x="96" y="38" width="96" height="36" rx="18" fill="${ACC}" stroke="none"/><text x="132" y="61" text-anchor="middle" font-family="Figtree, sans-serif" font-size="13" font-weight="700" fill="#fff" stroke="none">Chop</text>${key(160, 43, 'E')}`),
-  art(`<rect x="24" y="96" width="150" height="58" rx="6" fill="#f8f3e8"/><text x="38" y="117" font-family="Figtree, sans-serif" font-size="10" font-weight="700" letter-spacing="1.4" fill="${ACC}" stroke="none">GOAL</text><text x="38" y="137" font-family="Fraunces, serif" font-size="14" font-weight="600" fill="${INK}" stroke="none">Chop a tree</text><path d="M246 140 v-110" stroke="${SUN}" stroke-width="10" opacity=".55"/><ellipse cx="246" cy="142" rx="20" ry="6" stroke="${SUN}" stroke-width="3"/>`),
-  art(`<circle cx="62" cy="48" r="16" fill="${SUN}" stroke="none"/><path d="M62 22 v-8 M62 82 v-8 M36 48 h-8 M96 48 h-8"/><path d="M40 120 l40 -16 l26 22 l-40 16z" fill="#3b5d8c"/><path d="M73 138 v14"/><path d="M168 152 v-80"/><path d="M168 72 l-24 -14 M168 72 l26 -10 M168 72 l-2 28" stroke-width="3"/><circle cx="168" cy="72" r="4" fill="${INK}"/><rect x="214" y="104" width="34" height="48" rx="5" fill="#fffdf8"/><rect x="224" y="98" width="14" height="6" fill="${INK}"/><rect x="220" y="122" width="22" height="24" fill="${ACC}" stroke="none"/><path d="M106 128 h30 M186 128 h22" stroke-dasharray="4 5"/>`),
-  art(`${person(118, 152)}${person(200, 152, 1.05)}<path d="M136 92 q24 -18 48 0" stroke-dasharray="4 5"/><rect x="104" y="20" width="112" height="34" rx="6" fill="#fffdf8"/><text x="160" y="43" text-anchor="middle" font-family="Figtree, sans-serif" font-size="15" font-weight="700" letter-spacing="3" fill="${INK}" stroke="none">KB7Q2M</text>`),
-];
+// ---------- guide pictures ----------
+// Real renders of the game world (tests/guide_shots.py), 800 x 450 WebP, cached by the service worker.
+const GUIDE_PICS = ['g1', 'g2', 'g3', 'g4', 'g5'].map((name) => `assets/guide/${name}.webp`);
 
 // ---------- guide ----------
 let guideKeys = null;
 export function showGuide({ onDone, doneLabel }) {
   const root = $('#guide');
   root.hidden = false;
-  const total = ILLUSTRATIONS.length;
+  const total = GUIDE_PICS.length;
   let step = 0;
   const finish = () => {
     hideGuide();
@@ -45,10 +30,10 @@ export function showGuide({ onDone, doneLabel }) {
       h('div', { class: 'guide-head' },
         h('p', { class: 'eyebrow', text: t('guideStep', { n: step + 1, total }) }),
         h('button', { class: 'btn ghost tiny', type: 'button', id: 'guideSkip', onclick: finish, text: t('guideSkip') })),
-      h('div', { class: 'guide-art', html: ILLUSTRATIONS[step] }),
+      h('div', { class: 'guide-art' }, h('img', { src: GUIDE_PICS[step], alt: '', width: 800, height: 450, decoding: 'async' })),
       h('h2', { class: 'guide-title', id: 'guideTitle', text: t(`g${step + 1}t`) }),
       h('p', { class: 'guide-body', text: t(`g${step + 1}b`) }),
-      h('div', { class: 'guide-dots', 'aria-hidden': 'true' }, ILLUSTRATIONS.map((_, i) => h('span', { class: `dot${i === step ? ' on' : ''}` }))),
+      h('div', { class: 'guide-dots', 'aria-hidden': 'true' }, GUIDE_PICS.map((_, i) => h('span', { class: `dot${i === step ? ' on' : ''}` }))),
       h('div', { class: 'guide-actions' },
         h('button', {
           class: 'btn', type: 'button', id: 'guideBack', disabled: step === 0, style: { visibility: step === 0 ? 'hidden' : 'visible' }, onclick: () => {
@@ -67,6 +52,9 @@ export function showGuide({ onDone, doneLabel }) {
           }, text: last ? (doneLabel || t('guideDone')) : t('guideNext'),
         }))));
     $('#guideNext', root).focus({ preventScroll: true });
+    if (GUIDE_PICS[step + 1]) {
+      new Image().src = GUIDE_PICS[step + 1];
+    }
   };
   guideKeys = (event) => {
     if (event.key === 'Escape') {

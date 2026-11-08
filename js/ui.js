@@ -6,6 +6,7 @@ import * as S from './state.js';
 import {
   t, itemName, skillName, projectName, projectBody, npcBlurb, questName, questHint, buffText, phraseText, getLang, islandName,
 } from './i18n.js';
+import { itemGlyph, itemTones } from './icons.js';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -44,9 +45,9 @@ export const ICONS = {
   build: svg('<path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M10 21v-6h4v6"/>'),
   journal: svg('<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>'),
   together: svg('<circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5"/><path d="M14 20c0-2.4 1.4-4 3-4s3 1.6 3 4"/>'),
-  settings: svg('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>'),
-  left: svg('<path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6"/>'),
-  right: svg('<path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0-6 6"/>'),
+  settings: svg('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
+  left: svg('<path d="M12 4v9"/><circle cx="12" cy="13" r="1.3"/><path d="M19.5 13.5c0 2.5-3.4 4.5-7.5 4.5s-7.5-2-7.5-4.5c0-1.2.8-2.3 2.1-3.1"/><path d="M4 8.5l2.6 1.9-1.4 2.8"/>'),
+  right: svg('<path d="M12 4v9"/><circle cx="12" cy="13" r="1.3"/><path d="M4.5 13.5c0 2.5 3.4 4.5 7.5 4.5s7.5-2 7.5-4.5c0-1.2-.8-2.3-2.1-3.1"/><path d="M20 8.5l-2.6 1.9 1.4 2.8"/>'),
   close: svg('<path d="M6 6l12 12M18 6 6 18"/>'),
   sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
   moon: svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>'),
@@ -55,14 +56,23 @@ export const ICONS = {
   coin: svg('<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.6c0 2.4-5 1-5 3.4 0 1 1 1.5 2.5 1.5s2.5-.5 2.5-1.5"/>'),
   target: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>'),
   check: svg('<path d="m5 12 4 4 10-10"/>'),
+  lock: svg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   zoomIn: svg('<circle cx="11" cy="11" r="6"/><path d="M11 8v6M8 11h6M16 16l4 4"/>'),
   zoomOut: svg('<circle cx="11" cy="11" r="6"/><path d="M8 11h6M16 16l4 4"/>'),
 };
 
-const swatch = (id) => h('span', { class: 'swatch', style: { background: ITEMS[id]?.color || '#999' }, 'aria-hidden': 'true' });
-const needList = (s, need) => h('ul', { class: 'needs' }, Object.entries(need).map(([id, n]) => {
+// Item icons replace plain colour dots: a small glyph on a soft tint of the item's own colour.
+const swatch = (id) => h('span', { class: 'item-ico', style: { background: itemTones(id).tile }, html: itemGlyph(id, 16), 'aria-hidden': 'true' });
+const itemTile = (id, size = 28) => h('span', { class: 'item-tile', style: { background: itemTones(id).tile }, html: itemGlyph(id, size), 'aria-hidden': 'true' });
+const needList = (s, need) => h('ul', { class: 'need-chips' }, Object.entries(need).map(([id, n]) => {
   const have = S.count(s, id);
-  return h('li', { class: have >= n ? 'ok' : 'short' }, swatch(id), h('span', { text: `${n} ${itemName(id)}` }), h('span', { class: 'have', text: t('inBag', { n: have }) }));
+  const enough = have >= n;
+  return h('li', { class: `need-chip${enough ? ' ok' : ' short'}`, title: t('inBag', { n: have }) },
+    swatch(id),
+    h('span', { class: 'need-name', text: `${n} ${itemName(id)}` }),
+    enough
+      ? h('span', { class: 'need-ok', html: ICONS.check, 'aria-label': t('inBag', { n: have }) })
+      : h('span', { class: 'need-count', text: t('inBag', { n: have }) }));
 }));
 
 // ---------- panel frame ----------
@@ -76,6 +86,8 @@ export function openPanel(title, build, { size = 'md' } = {}) {
     const scroll = body.scrollTop;
     body.replaceChildren(build());
     body.scrollTop = scroll;
+    // Show the bottom fade only when there is more to scroll to.
+    requestAnimationFrame(() => body.classList.toggle('scrolls', body.scrollHeight > body.clientHeight + 4));
   };
   refreshCurrent();
   if (!panel.open) {
@@ -97,6 +109,18 @@ export function closePanel() {
   refreshCurrent = null;
 }
 export const panelOpen = () => $('#panel').open;
+// The dock stays visible under an open panel and highlights the one in use.
+export function markDock(id) {
+  document.querySelectorAll('.dock-btn').forEach((btn) => {
+    const on = btn.id === `dock-${id}`;
+    btn.classList.toggle('active', on);
+    if (on) {
+      btn.setAttribute('aria-current', 'true');
+    } else {
+      btn.removeAttribute('aria-current');
+    }
+  });
+}
 
 function tabs(names, active, onPick) {
   return h('div', { class: 'tabs', role: 'tablist' }, names.map(([id, label]) => h('button', {
@@ -139,6 +163,7 @@ export function buildHud(game) {
   $('#panelClose').setAttribute('aria-label', t('close'));
   $('#panelClose').onclick = () => closePanel();
   $('#goal').onclick = () => game.openNamed('journal');
+  $('#panel').addEventListener('close', () => markDock(null));
 }
 export function relabelHud() {
   document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -168,13 +193,6 @@ export function updateHud(game, prompt) {
   $('#placeLabel').textContent = island ? islandName(island) : '';
   $('#weatherIcon').innerHTML = raining ? ICONS.rain : night ? ICONS.moon : ICONS.sun;
   $('#weatherIcon').setAttribute('title', raining ? t('rain') : t('clear'));
-  // Sun-path dial: the sun (day) or moon (night) rides one arc from horizon to horizon.
-  const arcT = night || tod < 0.25 || tod > 0.75 ? (((tod + 0.25) % 1) / 0.5) : (tod - 0.25) / 0.5;
-  const along = Math.min(1, Math.max(0, arcT));
-  const dot = $('#sunDot');
-  dot.setAttribute('cx', (4 + along * 64).toFixed(1));
-  dot.setAttribute('cy', (21 - Math.sin(along * Math.PI) * 15).toFixed(1));
-  $('#sunPath').classList.toggle('night', night || tod < 0.25 || tod > 0.75);
   $('#energyIcon').innerHTML = ICONS.bolt;
   $('#energyFill').style.width = `${Math.round((s.energy / cap) * 100)}%`;
   $('#energyText').textContent = `${Math.floor(s.energy)} / ${cap}`;
@@ -187,6 +205,7 @@ export function updateHud(game, prompt) {
   $('#goalText').textContent = quest ? questName(quest) : t('allGoalsDone');
   $('#goalHint').textContent = quest ? questHint(quest) : '';
   $('#goalCount').textContent = `${Math.min(s.quest, QUESTS.length)}/${QUESTS.length}`;
+  $('#goalBar').style.width = `${Math.round((Math.min(s.quest, QUESTS.length) / QUESTS.length) * 100)}%`;
   const btn = $('#actionBtn');
   if (prompt) {
     btn.hidden = false;
@@ -245,42 +264,90 @@ export function hideTitle() {
 // ---------- bag ----------
 const KIND_ORDER = ['place', 'food', 'crop', 'fish', 'seed', 'part', 'raw', 'tool', 'wear'];
 export function openBag(game) {
+  markDock('bag');
   openPanel(t('bagTitle'), () => {
     const s = game.s;
-    const ids = Object.keys(s.inv).filter((id) => s.inv[id] > 0)
+    const ids = Object.keys(s.inv).filter((id) => s.inv[id] > 0 && ITEMS[id])
       .sort((a, b) => KIND_ORDER.indexOf(ITEMS[a].kind) - KIND_ORDER.indexOf(ITEMS[b].kind) || itemName(a).localeCompare(itemName(b)));
     const active = Object.keys(s.buffs).filter((b) => S.buffActive(s, b));
-    return h('div', {},
+    if (!ids.length) {
+      return h('div', { class: 'empty-state' }, h('span', { class: 'empty-ico', html: ICONS.bag }), h('p', { class: 'empty', text: t('empty') }));
+    }
+    const total = ids.reduce((sum, id) => sum + s.inv[id], 0);
+    const groups = KIND_ORDER.map((kind) => [kind, ids.filter((id) => ITEMS[id].kind === kind)]).filter(([, list]) => list.length);
+    const actionFor = (id) => {
+      const item = ITEMS[id];
+      if (item.kind === 'place') {
+        return h('button', { class: 'btn tiny', type: 'button', onclick: () => game.startBuild(id), text: t('place') });
+      }
+      if (item.kind === 'food') {
+        return h('button', { class: 'btn tiny', type: 'button', onclick: () => game.eat(id), text: t('eat') });
+      }
+      if (item.kind === 'wear') {
+        return s.hat === id
+          ? h('button', { class: 'btn tiny', type: 'button', onclick: () => game.wear(null), text: t('remove') })
+          : h('button', { class: 'btn tiny', type: 'button', onclick: () => game.wear(id), text: t('wear') });
+      }
+      return null;
+    };
+    const hintFor = (id) => {
+      const item = ITEMS[id];
+      if (item.kind === 'food' && item.buff) {
+        return buffText(item.buff);
+      }
+      if (item.kind === 'seed' && ITEMS[id.replace('seed_', '')]) {
+        return t('growsInto', { crop: itemName(id.replace('seed_', '')) });
+      }
+      if (item.kind === 'crop' || item.kind === 'fish') {
+        return t('sellsFor', { n: item.sell });
+      }
+      if (item.kind === 'raw' || item.kind === 'part') {
+        const uses = [...new Set(RECIPES.filter((r) => r.in[id]).map((r) => itemName(Object.keys(r.out)[0])))];
+        return uses.length ? t('usedFor', { list: uses.slice(0, 2).join(', ') + (uses.length > 2 ? ` +${uses.length - 2}` : '') }) : t(`hint_${item.kind}`);
+      }
+      return t(`hint_${item.kind}`);
+    };
+    return h('div', { class: 'bag' },
+      h('p', { class: 'panel-summary' }, t('bagSummary', { kinds: ids.length, n: total })),
       active.length ? h('div', { class: 'note' }, h('strong', { text: `${t('buffActive')}: ` }), active.map(buffText).join(', ')) : null,
-      ids.length ? h('ul', { class: 'rows' }, ids.map((id) => {
-        const item = ITEMS[id];
-        let action = null;
-        if (item.kind === 'place') {
-          action = h('button', { class: 'btn small', type: 'button', onclick: () => game.startBuild(id), text: t('place') });
-        } else if (item.kind === 'food') {
-          action = h('button', { class: 'btn small', type: 'button', onclick: () => game.eat(id), text: t('eat') });
-        } else if (item.kind === 'wear') {
-          action = s.hat === id
-            ? h('button', { class: 'btn small', type: 'button', onclick: () => game.wear(null), text: t('remove') })
-            : h('button', { class: 'btn small', type: 'button', onclick: () => game.wear(id), text: t('wear') });
-        }
-        return h('li', { class: 'row' }, swatch(id), h('span', { class: 'row-name', text: itemName(id) }), h('span', { class: 'qty', text: `${s.inv[id]}` }), action);
-      })) : h('p', { class: 'empty', text: t('empty') }));
-  });
+      groups.map(([kind, list]) => h('section', { class: 'bag-group' },
+        h('h3', { class: 'group-h' }, h('span', { text: t(`kind_${kind}`) }), h('span', { class: 'group-n', text: `${list.length}` })),
+        h('ul', { class: 'bag-grid' }, list.map((id) => h('li', { class: 'bag-item' },
+          itemTile(id),
+          h('span', { class: 'bag-text' }, h('strong', { text: itemName(id) }), h('span', { class: 'bag-hint', text: hintFor(id) })),
+          h('span', { class: 'bag-qty num', text: `${s.inv[id]}` }),
+          actionFor(id)))))));
+  }, { size: 'lg' });
 }
 
 // ---------- crafting stations ----------
+const stationFilter = {};
+const STATE_RANK = { ok: 0, missing: 1, energy: 2, level: 3, locked: 4 };
 export function openStation(game, station) {
   const titles = { bench: t('craftTitle'), stove: t('cookTitle'), compost: t('compostTitle') };
   openPanel(titles[station], () => {
     const s = game.s;
-    const list = RECIPES.filter((r) => r.station === station);
+    const list = RECIPES.filter((r) => r.station === station)
+      .map((recipe, order) => ({ recipe, order, state: S.recipeState(s, recipe) }))
+      .sort((a, b) => STATE_RANK[a.state] - STATE_RANK[b.state] || a.order - b.order);
+    const readyCount = list.filter((entry) => entry.state === 'ok').length;
+    const filter = stationFilter[station] || 'all';
+    const shown = filter === 'ready' ? list.filter((entry) => entry.state === 'ok') : list;
+    const pick = (id) => {
+      stationFilter[station] = id;
+      refreshPanel();
+    };
     return h('div', {},
-      station === 'stove' ? h('p', { class: 'note' }, h('span', { class: 'ico-inline', html: ICONS.bolt }), `${t('energy')}: ${Math.floor(s.energy)} / ${S.energyCapacity(s)}`) : null,
-      h('ul', { class: 'cards' }, list.map((recipe) => {
-        const state = S.recipeState(s, recipe);
+      h('div', { class: 'panel-tools' },
+        h('div', { class: 'seg seg-sm', role: 'group' }, [['all', `${t('filterAll')} ${list.length}`], ['ready', `${t('filterReady')} ${readyCount}`]].map(([id, label]) => h('button', {
+          type: 'button', class: `seg-btn${filter === id ? ' on' : ''}`, 'aria-pressed': filter === id ? 'true' : 'false', onclick: () => pick(id), text: label,
+        }))),
+        station === 'stove' ? h('span', { class: 'meta' }, h('span', { class: 'ico-inline', html: ICONS.bolt }), ` ${t('energy')} ${Math.floor(s.energy)} / ${S.energyCapacity(s)}`) : null),
+      shown.length ? null : h('p', { class: 'empty', text: t('noneReady') }),
+      h('ul', { class: 'recipes' }, shown.map(({ recipe, state }) => {
         const outId = Object.keys(recipe.out)[0];
         const outN = recipe.out[outId];
+        const owned = S.count(s, outId);
         let reason = '';
         if (state === 'locked') {
           reason = t('needProject');
@@ -294,14 +361,19 @@ export function openStation(game, station) {
             .map(([id, n]) => `${n - S.count(s, id)} ${itemName(id)}`);
           reason = short.length ? t('needMore', { list: short.join(', ') }) : t('missing');
         }
-        return h('li', { class: `card${state === 'ok' ? '' : ' dim'}` },
-          h('div', { class: 'card-head' }, swatch(outId), h('strong', { text: `${itemName(outId)}${outN > 1 ? ` x${outN}` : ''}` }),
-            h('span', { class: 'qty muted', text: `${t('owned')} ${S.count(s, outId)}` })),
+        const ready = state === 'ok';
+        return h('li', { class: `recipe${ready ? ' ready' : ' blocked'}` },
+          h('div', { class: 'recipe-head' }, itemTile(outId, 26),
+            h('span', { class: 'recipe-title' },
+              h('strong', { text: `${itemName(outId)}${outN > 1 ? ` x${outN}` : ''}` }),
+              h('span', { class: 'recipe-sub', text: owned ? t('inBagShort', { n: owned }) : t(`hint_${ITEMS[outId]?.kind || 'part'}`) }))),
           state === 'locked' ? null : needList(s, recipe.in),
-          recipe.energy ? h('p', { class: 'meta' }, h('span', { class: 'ico-inline', html: ICONS.bolt }), `${recipe.energy} ${t('energy').toLowerCase()}`) : null,
-          h('div', { class: 'card-foot' },
-            h('span', { class: 'meta why', text: reason }),
-            h('button', { class: 'btn small primary', type: 'button', disabled: state !== 'ok', onclick: () => game.craft(recipe.id), text: t('make') })));
+          h('div', { class: 'recipe-foot' },
+            ready
+              ? h('span', { class: 'status-ok' }, h('span', { class: 'ico-inline', html: ICONS.check }), t('readyNow'))
+              : h('span', { class: 'status-why', text: reason }),
+            recipe.energy ? h('span', { class: 'meta energy-cost' }, h('span', { class: 'ico-inline', html: ICONS.bolt }), `${recipe.energy}`) : null,
+            h('button', { class: `btn small${ready ? ' primary' : ''}`, type: 'button', disabled: !ready, onclick: () => game.craft(recipe.id), text: t('make') })));
       })));
   }, { size: 'lg' });
 }
@@ -432,6 +504,7 @@ export function openPet(game) {
 
 // ---------- journal ----------
 export function openJournal(game, tab = 'goals') {
+  markDock('journal');
   let current = tab;
   openPanel(t('journal'), () => {
     const s = game.s;
@@ -475,6 +548,7 @@ export function openJournal(game, tab = 'goals') {
 
 // ---------- together ----------
 export function openTogether(game) {
+  markDock('together');
   openPanel(t('togetherTitle'), () => {
     const room = game.room;
     const code = h('input', { class: 'input code', id: 'roomCode', maxlength: '8', placeholder: 'ABC123', autocomplete: 'off', 'aria-label': t('roomCode') });
@@ -504,6 +578,7 @@ export function openTogether(game) {
 
 // ---------- settings ----------
 export function openSettings(game) {
+  markDock('settings');
   openPanel(t('settingsTitle'), () => {
     const st = game.settings;
     const seg = (label, options, value, onPick) => h('div', { class: 'field' }, h('span', { text: label }), h('div', { class: 'seg' },
