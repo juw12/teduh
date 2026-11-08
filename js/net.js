@@ -1,8 +1,9 @@
 // Playing together, peer to peer (WebRTC), with signalling over public Nostr relays (Trystero).
-// No Teduh server and no account. Shared: display name, colour, hat, position, preset phrases and
+// No Teduh server and no account. Shared: display name, appearance (from a fixed list), hat, position, preset phrases and
 // community-project deliveries. Like any peer-to-peer call, other players' browsers can see your IP address.
 
 import { PHRASES, PROJECTS, ITEMS } from './data.js';
+import { sanitizeLook } from './look.js';
 
 const APP_ID = 'teduh-sky-islands-v1';
 export const PLAZA = 'plaza';
@@ -53,7 +54,7 @@ export async function joinTogether(roomCode, profile, handlers) {
   let me = { ...profile };
 
   onRoom(room, 'onPeerJoin', (peerId) => {
-    actions.hello.send({ name: me.name, color: me.color, hat: me.hat }, peerId);
+    actions.hello.send({ name: me.name, color: me.color, hat: me.hat, look: me.look }, peerId);
     if (lastState) {
       actions.state.send(lastState, peerId);
     }
@@ -65,10 +66,17 @@ export async function joinTogether(roomCode, profile, handlers) {
     }
   });
   actions.hello.on((data, peerId) => {
-    if (!data || known.has(peerId) || known.size >= 24) {
+    if (!data || known.size >= 24 && !known.has(peerId)) {
       return;
     }
-    const info = { name: safeName(data.name), color: safeColor(data.color), hat: safeHat(data.hat) };
+    const color = safeColor(data.color);
+    const info = { name: safeName(data.name), color, hat: safeHat(data.hat), look: sanitizeLook(data.look, color) };
+    if (known.has(peerId)) {
+      // a friend changed name, clothes or hat
+      known.set(peerId, info);
+      handlers.update?.(peerId, info);
+      return;
+    }
     known.set(peerId, info);
     handlers.join(peerId, info);
   });
@@ -113,7 +121,7 @@ export async function joinTogether(roomCode, profile, handlers) {
     },
     updateProfile(profileUpdate) {
       me = { ...me, ...profileUpdate };
-      actions.hello.send({ name: me.name, color: me.color, hat: me.hat });
+      actions.hello.send({ name: me.name, color: me.color, hat: me.hat, look: me.look });
     },
     peerName: (peerId) => (known.has(peerId) ? known.get(peerId).name : 'Guest'),
     peerCount: () => known.size,

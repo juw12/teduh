@@ -1,7 +1,7 @@
 // Teduh game content. Everything the rules (state.js) and the world (world.js) need lives here,
 // so balancing the game means editing numbers in one file.
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.2.0';
 export const DAY_LENGTH = 600; // seconds of play per in-game day (10 minutes)
 export const START_TIME_OF_DAY = 0.3; // a new save starts in the early morning
 
@@ -181,6 +181,7 @@ export const PROJECTS = [
 export const NPCS = {
   sari: {
     name: 'Sari', color: '#c0583a', island: 'market', x: -3.2, z: -29.2,
+    look: { build: 'average', height: 1, face: 'round', skin: '#c48a62', eyes: '#3b2416', hair: 'hijab', hairColor: '#1c1714', accent: '#c0583a', top: 'long', topColor: '#f1ebdd', bottom: 'sarong', bottomColor: '#8a5a33', shoes: '#5a3d28' },
     en: 'Runs the market stall. Buys anything, sells seeds and hats.',
     idn: 'Penjaga kios pasar. Membeli apa saja, menjual benih dan topi.',
     wants: ['basil', 'tomato', 'sunflower', 'berry', 'salad', 'sun_tea'],
@@ -188,6 +189,7 @@ export const NPCS = {
   },
   bayu: {
     name: 'Bayu', color: '#2f6e6a', island: 'market', x: 4.6, z: -33.2,
+    look: { build: 'sturdy', height: 3, face: 'square', skin: '#8b5537', eyes: '#3b2416', hair: 'short', hairColor: '#1c1714', facial: 'beard', top: 'jacket', topColor: '#2f6e6a', accent: '#f1ebdd', bottom: 'trousers', bottomColor: '#2a2d2b', shoes: '#2a2420' },
     en: 'Engineer. Keeps the islands running on sun and wind.',
     idn: 'Insinyur. Menjaga pulau tetap jalan dengan matahari dan angin.',
     wants: ['plank', 'wire', 'rope', 'stone', 'scrap'],
@@ -195,6 +197,7 @@ export const NPCS = {
   },
   lin: {
     name: 'Lin', color: '#3b5d8c', island: 'market', x: -5.2, z: -35.2,
+    look: { build: 'slim', height: 1, face: 'oval', skin: '#e9bf9f', eyes: '#3b2416', hair: 'ponytail', hairColor: '#1c1714', top: 'batik', topColor: '#3b5d8c', accent: '#d9a21b', bottom: 'trousers', bottomColor: '#c9b48a', shoes: '#e8e2d4' },
     en: 'Fisher and cook. Knows every pool between the clouds.',
     idn: 'Nelayan dan juru masak. Tahu semua kolam di antara awan.',
     wants: ['fish_minnow', 'fish_carp', 'fish_stew', 'berry_tart', 'fish_ray'],

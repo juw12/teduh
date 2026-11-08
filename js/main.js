@@ -7,6 +7,8 @@ import { t, setLang, getLang, itemName, skillName, projectName, questName, phras
 import * as UI from './ui.js';
 import { audio } from './audio.js';
 import { joinTogether, makeRoomCode, cleanRoomCode, PLAZA } from './net.js';
+import { showGuide, hideGuide, showCreator } from './onboard.js';
+import { sanitizeLook, starterLook } from './look.js';
 
 const params = new URLSearchParams(location.search);
 const TEST = params.has('test');
@@ -342,7 +344,7 @@ Object.assign(game, {
     game.targetYaw += dir * (Math.PI / 4);
   },
   zoomCamera(dir) {
-    game.targetZoom = Math.max(0.55, Math.min(1.6, game.targetZoom + dir * 0.15));
+    game.targetZoom = Math.max(0.3, Math.min(1.6, game.targetZoom + dir * 0.15));
   },
   craft(id) {
     const result = S.craft(game.s, id);
@@ -414,7 +416,7 @@ Object.assign(game, {
   },
   wear(id) {
     game.s.hat = id;
-    world.setPlayerLook(game.s.color, id);
+    world.setPlayerLook(game.s.look, id);
     if (game.room && game.room.conn) {
       game.room.conn.updateProfile({ hat: id });
     }
@@ -558,7 +560,10 @@ Object.assign(game, {
     game.room = { code: room, connecting: true, conn: null };
     UI.refreshPanel();
     try {
-      const conn = await joinTogether(room, { name: game.s.name, color: game.s.color, hat: game.s.hat }, {
+      const conn = await joinTogether(room, { name: game.s.name, color: game.s.color, hat: game.s.hat, look: game.s.look }, {
+        update(id, info) {
+          world.updatePeerLook(id, info);
+        },
         join(id, info) {
           world.addPeer(id, info);
           UI.toast(t('joined', { name: info.name }));
@@ -640,13 +645,24 @@ Object.assign(game, {
     }
     UI.refreshPanel();
   },
-  setColor(color) {
-    game.s.color = color;
-    world.setPlayerLook(color, game.s.hat);
+  setLook(look) {
+    const clean = sanitizeLook(look);
+    game.s.look = clean;
+    game.s.color = clean.topColor;
+    world.setPlayerLook(clean, game.s.hat);
     if (game.room && game.room.conn) {
-      game.room.conn.updateProfile({ color });
+      game.room.conn.updateProfile({ look: clean, color: clean.topColor });
     }
     afterChange();
+    save();
+  },
+  openCreator() {
+    UI.closePanel();
+    showCreator({ look: game.s.look, mode: 'edit', onDone: (look) => game.setLook(look) });
+  },
+  openGuide() {
+    UI.closePanel();
+    showGuide({ doneLabel: t('guideClose') });
   },
   photo() {
     const link = document.createElement('a');
@@ -902,7 +918,7 @@ canvas.addEventListener('pointermove', (event) => {
       game.targetYaw -= dx * 0.004;
       if (pinchStart) {
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        game.targetZoom = Math.max(0.55, Math.min(1.6, pinchStart.zoom * (pinchStart.dist / Math.max(40, dist))));
+        game.targetZoom = Math.max(0.3, Math.min(1.6, pinchStart.zoom * (pinchStart.dist / Math.max(40, dist))));
       }
     } else if (p.button === 2) {
       game.targetYaw -= dx * 0.008;
@@ -935,7 +951,7 @@ canvas.addEventListener('pointercancel', (event) => {
 });
 canvas.addEventListener('wheel', (event) => {
   event.preventDefault();
-  game.targetZoom = Math.max(0.55, Math.min(1.6, game.targetZoom + Math.sign(event.deltaY) * 0.08));
+  game.targetZoom = Math.max(0.3, Math.min(1.6, game.targetZoom + Math.sign(event.deltaY) * 0.08));
 }, { passive: false });
 
 function handleTap(x, y) {
@@ -1071,7 +1087,7 @@ function enterGame(state, offline) {
   game.s = state;
   setLang(state.lang);
   settings.lang = state.lang;
-  world.setPlayerLook(state.color, state.hat);
+  world.setPlayerLook(state.look, state.hat);
   world.unlockKey = '';
   world.refreshUnlocks(state);
   world.syncPlaced(state);
@@ -1130,8 +1146,22 @@ function boot() {
         audio.unlock();
         settings.name = options.name;
         store.set(SETTINGS_KEY, JSON.stringify(settings));
-        enterGame(S.newState(options), null);
-        save();
+        // a new player learns how to play first, then makes their character, then plays
+        UI.hideTitle();
+        const create = () => showCreator({
+          look: starterLook(),
+          mode: 'new',
+          onCancel: () => showGuide({ onDone: create }),
+          onDone: (look) => {
+            enterGame(S.newState({ ...options, look, color: look.topColor }), null);
+            save();
+          },
+        });
+        showGuide({ onDone: create });
+      },
+      onHowTo: () => {
+        UI.hideTitle();
+        showGuide({ doneLabel: t('guideClose'), onDone: () => { $('#title').hidden = false; } });
       },
       onLang: (code) => {
         setLang(code);
@@ -1165,6 +1195,8 @@ if (TEST) {
       game.s.pos.z = z;
     },
     describe: (key) => describe(world.interactables.find((e) => e.key === key)),
+    setLook: (look) => game.setLook(look),
+    hideGuide,
     nearestKey: () => (game.nearest ? game.nearest.key : null),
     afterChange,
   };

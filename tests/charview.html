@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Teduh character check</title>
+  <style>
+    html, body { margin: 0; background: #dfe7e2; }
+    .grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: 0; }
+    canvas { width: 100%; height: var(--h, 420px); display: block; }
+  </style>
+</head>
+<body>
+  <div id="grid" class="grid"></div>
+  <script type="module">
+    // Test harness: renders several looks with the creator's turntable. ?view=face for close-ups.
+    import { createPreview } from '../js/character.js';
+    import { DEFAULT_LOOK, randomLook } from '../js/look.js';
+    const params = new URLSearchParams(location.search);
+    const view = params.get('view') || 'body';
+    const looks = [
+      { ...DEFAULT_LOOK },
+      { ...DEFAULT_LOOK, hair: 'hijab', accent: '#c0583a', top: 'long', topColor: '#f1ebdd', bottom: 'sarong', bottomColor: '#8a5a33', skin: '#c48a62', face: 'round' },
+      { ...DEFAULT_LOOK, hair: 'short', facial: 'beard', top: 'jacket', topColor: '#2f6e6a', accent: '#f1ebdd', bottom: 'trousers', bottomColor: '#2a2d2b', skin: '#8b5537', build: 'sturdy', height: 4, face: 'square' },
+      { ...DEFAULT_LOOK, hair: 'ponytail', hairColor: '#1c1714', top: 'batik', topColor: '#3b5d8c', accent: '#d9a21b', bottom: 'skirt', bottomColor: '#c9b48a', skin: '#e9bf9f', build: 'slim', height: 1 },
+      { ...DEFAULT_LOOK, hair: 'curly', hairColor: '#3a2518', top: 'tank', topColor: '#d9a21b', bottom: 'shorts', bottomColor: '#5b6f7c', skin: '#4b2b1b' },
+      { ...DEFAULT_LOOK, hair: 'long', hairColor: '#b98a4e', top: 'long', topColor: '#9c3d2e', bottom: 'trousers', bottomColor: '#2a2d2b', skin: '#f3d5c0', eyes: '#41698a' },
+      { ...DEFAULT_LOOK, hair: 'bun', hairColor: '#8c8a86', facial: 'none', top: 'tee', topColor: '#6f7d3c', bottom: 'skirt', bottomColor: '#3b5d8c', skin: '#a96e48', height: 0 },
+      { ...DEFAULT_LOOK, hair: 'bob', hairColor: '#8a4a26', top: 'batik', topColor: '#8a5a33', accent: '#f1ebdd', bottom: 'sarong', bottomColor: '#2f6e6a', skin: '#dba67f' },
+    ];
+    const count = Number(params.get('n') || looks.length);
+    const grid = document.getElementById('grid');
+    looks.slice(0, count).forEach((look, i) => {
+      const canvas = document.createElement('canvas');
+      grid.appendChild(canvas);
+      const preview = createPreview(canvas);
+      preview.setLook(look);
+      preview.setView(view);
+    });
+    window.ready = true;
+  </script>
+</body>
+</html>

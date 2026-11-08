@@ -29,8 +29,8 @@
 <table>
   <tr>
     <td width="33%" valign="top">
-      <b>Farm, fish, craft, decorate</b><br>
-      Plant basil, tomatoes, sunflowers and sky berries, fish two pools, cook meals that give boosts, and furnish your own floating island.
+      <b>Make someone who looks like you</b><br>
+      A character creator with a live 3D preview: 14 choices across body, face, hair and clothes, including 8 skin tones, a hijab, batik and sarong.
     </td>
     <td width="33%" valign="top">
       <b>Run your island on sun and wind</b><br>
@@ -77,12 +77,14 @@ idea that matter for a calm session and removes the friction reviewers complaine
 
 Loftia facts come from its [store and launch pages](https://loftia.gg/early-access/) and early reviews
 ([Game8](https://game8.co/reviews/loftia/loftia-review-early-access), [Massively Overpowered](https://massivelyop.com/2026/11/05/loftias-early-access-earns-some-respectable-reviews-and-player-counts-as-the-devs-list-known-issues/)).
-What Loftia does better: a large shared world, many more activities, professional art and pets you can customise.
+What Loftia does better: a large shared world, many more activities, professional art and pets you can customise. Its characters are stylised; Teduh's are built to look like real people, with more body, face and clothing choices than a colour swap.
 
 ## Features
 
 | Area | What you can do |
 |---|---|
+| Character creator | Live 3D turntable with body and face views; build, 5 heights, 3 face shapes, 8 skin tones, eye colour, 10 hairstyles (including hijab, bun and curls), hair colour, facial hair, 5 tops (tee, long sleeve, tank, batik, jacket), 4 bottoms (trousers, shorts, skirt, sarong), cloth and shoe colours; 6 ready-made starting looks; change it any time in Settings |
+| How to play guide | Five illustrated steps shown before your first game (skippable) and reopenable from the title screen or Settings |
 | Islands | Home Isle, Market Isle, Grove Isle (after the sky bridge) and Reef Isle (after the reef dock), with a day and night cycle and rain |
 | Gathering | Trees, rocks, scrap piles, bushes and berry bushes that regrow |
 | Farming | Planters, 4 crops, watering, compost for faster growth, sprinklers; crops keep growing while you are away (up to 30 minutes) |
@@ -100,16 +102,17 @@ What Loftia does better: a large shared world, many more activities, professiona
 
 ## How to play
 
-1. Open [juw12.github.io/teduh](https://juw12.github.io/teduh/), type a name, pick a colour and press Start.
-2. Follow the goal card at the bottom left. A gold beacon in the world shows where to go.
-3. Walk with WASD or the arrow keys, or tap the ground. Press E, Space or the action button to act.
-4. Q and R turn the camera; on a phone, drag with two fingers. B opens the bag, C build mode, J the journal.
-5. To install it as an app, open Settings and choose "Install as an app" (Chrome, Edge, Android), or use "Add to Home Screen" on iPhone.
+1. Open [juw12.github.io/teduh](https://juw12.github.io/teduh/), type a name and press Start.
+2. Read the five-step How to play guide (or skip it; it is always in Settings), then make your character and press Begin.
+3. Follow the goal card at the bottom left. A gold beacon in the world shows where to go.
+4. Walk with WASD or the arrow keys, or tap the ground. Press E, Space or the action button to act.
+5. Q and R turn the camera; on a phone, drag with two fingers. B opens the bag, C build mode, J the journal.
+6. To install it as an app, open Settings and choose "Install as an app" (Chrome, Edge, Android), or use "Add to Home Screen" on iPhone.
 
 ## Play together and privacy
 
 Playing together is opt-in. It uses [Trystero](https://github.com/dmotz/trystero) (WebRTC) with public Nostr relays
-only to introduce browsers to each other; there is no Teduh server. Shared data: your display name, colour, hat,
+only to introduce browsers to each other; there is no Teduh server. Shared data: your display name, character look (only the preset choices, checked on arrival), hat,
 position, preset phrases and project deliveries. Like any video call, other players' browsers can see your IP address.
 There is no free text chat, so nobody can send you anything except the preset phrases.
 
@@ -126,6 +129,8 @@ from the network. Fonts (Fraunces, Figtree; SIL Open Font License) are bundled f
 | `js/data.js` | Items, crops, recipes, islands, projects, villagers, goals |
 | `js/state.js` | Game rules as pure functions over a JSON save |
 | `js/world.js` | 3D world built from primitives |
+| `js/look.js`, `js/character.js` | Character choices and the sanitiser; the jointed, animated 3D person and the creator preview |
+| `js/onboard.js` | How to play guide and character creator |
 | `js/ui.js`, `js/i18n.js` | Interface and English/Indonesian text |
 | `js/net.js` | Peer-to-peer rooms |
 | `tests/run_tests.py` | Browser test suite (Playwright) |

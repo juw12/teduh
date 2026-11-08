@@ -3,6 +3,8 @@
 
 import * as THREE from '../vendor/three.module.min.js';
 import { ISLANDS, BRIDGES, FIXTURES, NODE_SPOTS, NPCS, ITEMS, CROPS } from './data.js';
+import { makeCharacter, applyLook, animateCharacter } from './character.js';
+import { sanitizeLook } from './look.js';
 import {
   mulberry32, bridgeSegment, unlocked, nodeReady, timeOfDay, daylight, isRaining, projectDone, cropProgress,
   energyCapacity,
@@ -28,21 +30,10 @@ function at(object, x, y, z) {
 }
 
 // ---------- people ----------
-export function makePerson(color, skin = '#d9b08c') {
-  const g = new THREE.Group();
-  const body = at(mesh(new THREE.CapsuleGeometry(0.3, 0.5, 4, 10), color), 0, 0.72, 0);
-  const head = at(mesh(new THREE.SphereGeometry(0.29, 14, 10), skin), 0, 1.38, 0);
-  const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
-  const eyeL = at(mesh(eyeGeo, '#1d1d1b'), -0.1, 1.42, 0.26);
-  const eyeR = at(mesh(eyeGeo, '#1d1d1b'), 0.1, 1.42, 0.26);
-  const footGeo = new THREE.BoxGeometry(0.16, 0.1, 0.26);
-  const footL = at(mesh(footGeo, '#3a3530'), -0.13, 0.05, 0.04);
-  const footR = at(mesh(footGeo, '#3a3530'), 0.13, 0.05, 0.04);
-  const hat = new THREE.Group();
-  hat.position.y = 1.6;
-  g.add(body, head, eyeL, eyeR, footL, footR, hat);
-  g.userData = { body, head, footL, footR, hat, phase: 0 };
-  return g;
+// Realistic, customisable people live in character.js; a bare colour (old saves, old friends) becomes a look.
+export function makePerson(lookOrColor) {
+  const look = typeof lookOrColor === 'string' ? sanitizeLook(null, lookOrColor) : sanitizeLook(lookOrColor);
+  return makeCharacter(look);
 }
 export function setHat(person, hatId) {
   const slot = person.userData.hat;
@@ -61,15 +52,8 @@ export function setHat(person, hatId) {
     }
   }
 }
-function animatePerson(person, moving, dt, speed = 1) {
-  const u = person.userData;
-  u.phase += dt * (moving ? 9 * speed : 2);
-  const swing = moving ? Math.sin(u.phase) * 0.12 : 0;
-  u.footL.position.z = 0.04 + swing;
-  u.footR.position.z = 0.04 - swing;
-  u.body.position.y = 0.72 + (moving ? Math.abs(Math.sin(u.phase)) * 0.05 : Math.sin(u.phase) * 0.012);
-  u.head.position.y = u.body.position.y + 0.66;
-  u.hat.position.y = u.head.position.y + 0.22;
+function animatePerson(person, moving, dt, speed = 1, action = 0) {
+  animateCharacter(person, moving, dt, speed, action);
 }
 
 function makePet() {
@@ -707,13 +691,11 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
 
   // villagers
   Object.entries(NPCS).forEach(([id, npc]) => {
-    const person = at(makePerson(npc.color), npc.x, 0, npc.z);
+    const person = at(makePerson(npc.look || npc.color), npc.x, 0, npc.z);
     person.rotation.y = id === 'sari' ? 0 : Math.PI * 0.8;
     const label = at(makeLabel(npc.name), 0, 2.2, 0);
     person.add(label);
-    if (id === 'sari') {
-      setHat(person, 'hat_straw');
-    } else if (id === 'bayu') {
+    if (id === 'bayu') {
       setHat(person, 'hat_cap');
     }
     scene.add(person);
@@ -722,7 +704,7 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
   });
 
   // player and pet
-  const player = makePerson('#3f7d4e');
+  const player = makePerson(null);
   scene.add(player);
   world.player = player;
   const pet = makePet();
@@ -916,7 +898,7 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     if (world.peers.has(id)) {
       return;
     }
-    const person = makePerson(info.color);
+    const person = makePerson(info.look || info.color);
     setHat(person, info.hat);
     const label = at(makeLabel(info.name, { bg: 'rgba(250,247,240,0.92)', fg: '#1f2a26' }), 0, 2.15, 0);
     person.add(label);
@@ -960,9 +942,16 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     selfBubbleUntil = elapsed + 5;
   };
 
-  world.setPlayerLook = (color, hat) => {
-    player.userData.body.material = mat(color);
+  world.setPlayerLook = (look, hat) => {
+    applyLook(player, typeof look === 'string' ? sanitizeLook(null, look) : look);
     setHat(player, hat);
+  };
+  world.updatePeerLook = (id, info) => {
+    const peer = world.peers.get(id);
+    if (peer) {
+      applyLook(peer.person, info.look || sanitizeLook(null, info.color));
+      setHat(peer.person, info.hat);
+    }
   };
 
   const tmpColor = new THREE.Color();
@@ -990,12 +979,7 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     // player
     player.position.set(s.pos.x, 0, s.pos.z);
     player.rotation.y = s.pos.f;
-    animatePerson(player, moving, dt, speed);
-    if (actionPulse > 0) {
-      player.userData.body.rotation.x = Math.sin(actionPulse * Math.PI) * 0.25;
-    } else {
-      player.userData.body.rotation.x = 0;
-    }
+    animatePerson(player, moving, dt, speed, actionPulse > 0 ? Math.sin(actionPulse * Math.PI) : 0);
     if (selfBubble && elapsed > selfBubbleUntil) {
       player.remove(selfBubble);
       selfBubble = null;
@@ -1126,9 +1110,11 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     });
 
     // camera
+    // zoomed out: the calm 40 degree overview; zoomed in: a low, over-the-shoulder view of the people
+    const close = Math.min(1, Math.max(0, (world.zoom - 0.28) / 0.72));
     const dist = 15 * world.zoom;
-    camTarget.set(s.pos.x, 0.8, s.pos.z);
-    camera.position.set(camTarget.x + Math.sin(world.yaw) * dist, camTarget.y + 12.5 * world.zoom, camTarget.z + Math.cos(world.yaw) * dist);
+    camTarget.set(s.pos.x, 0.8 + (1 - close) * 0.55, s.pos.z);
+    camera.position.set(camTarget.x + Math.sin(world.yaw) * dist, camTarget.y + dist * (0.3 + 0.533 * close), camTarget.z + Math.cos(world.yaw) * dist);
     camera.lookAt(camTarget);
   };
 

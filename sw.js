@@ -1,13 +1,13 @@
 // Offline support: the whole game is cached on first visit, then served cache-first.
 // Bump VERSION on every release so players get the new files.
 
-const VERSION = 'teduh-v1.0.0';
+const VERSION = 'teduh-v1.2.0';
 const SHELL = [
   './',
   'index.html',
   'manifest.webmanifest',
-  'css/style.css?v=1.0.0',
-  'js/main.js?v=1.0.0',
+  'css/style.css?v=1.2.0',
+  'js/main.js?v=1.2.0',
   'js/data.js',
   'js/state.js',
   'js/i18n.js',
@@ -15,6 +15,9 @@ const SHELL = [
   'js/ui.js',
   'js/audio.js',
   'js/net.js',
+  'js/look.js',
+  'js/character.js',
+  'js/onboard.js',
   'vendor/three.module.min.js',
   'vendor/trystero-nostr.js',
   'fonts/Fraunces.woff2',

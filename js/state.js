@@ -6,6 +6,7 @@ import {
   NODES, NODE_SPOTS, FISH_SPOTS, ISLANDS, BRIDGES, PROJECTS, NPCS, FRIEND_GIFT_AT, START_PLACED, START_INVENTORY,
   START_CREDITS, QUESTS, BUILD_KEEP_CLEAR, BUILD_ISLAND, FIXTURES,
 } from './data.js';
+import { sanitizeLook } from './look.js';
 
 export const SAVE_KEY = 'teduh.save.v1';
 export const OFFLINE_CAP_SECONDS = 1800;
@@ -24,7 +25,7 @@ export function mulberry32(seed) {
 export const randInt = (rng, min, max) => min + Math.floor(rng() * (max - min + 1));
 
 // ---------- new game ----------
-export function newState({ name = 'Traveller', color = '#3f7d4e', lang = 'en' } = {}) {
+export function newState({ name = 'Traveller', color = '#3f7d4e', lang = 'en', look = null } = {}) {
   const skills = {};
   SKILLS.forEach((skill) => {
     skills[skill] = { level: 1, xp: 0 };
@@ -35,6 +36,7 @@ export function newState({ name = 'Traveller', color = '#3f7d4e', lang = 'en' } 
     v: VERSION,
     name: cleanName(name),
     color: /^#[0-9a-f]{6}$/i.test(color) ? color : '#3f7d4e',
+    look: sanitizeLook(look, color),
     lang: lang === 'id' ? 'id' : 'en',
     hat: null,
     clock: 0,
@@ -695,13 +697,14 @@ export function deserialize(text) {
   if (!data || typeof data !== 'object' || typeof data.clock !== 'number' || !data.inv) {
     throw new Error('Not a Teduh save');
   }
-  const base = newState({ name: data.name, color: data.color, lang: data.lang });
+  const base = newState({ name: data.name, color: data.color, lang: data.lang, look: data.look });
   const merged = { ...base, ...data };
   merged.stats = { ...base.stats, ...(data.stats || {}) };
   merged.skills = { ...base.skills, ...(data.skills || {}) };
   merged.projects = { ...base.projects, ...(data.projects || {}) };
   merged.friends = { ...base.friends, ...(data.friends || {}) };
   merged.pet = { ...base.pet, ...(data.pet || {}) };
+  merged.look = base.look;
   merged.inv = Object.fromEntries(Object.entries(data.inv).filter(([id, n]) => ITEMS[id] && Number.isFinite(n) && n > 0));
   merged.placed = (Array.isArray(data.placed) ? data.placed : []).filter((p) => ITEMS[p.type]?.kind === 'place');
   merged.nextUid = Math.max(merged.nextUid || 1, ...merged.placed.map((p) => p.uid + 1));

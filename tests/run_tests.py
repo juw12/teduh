@@ -285,7 +285,38 @@ def run(args):
             page.screenshot(path=str(shots / "title-1280.png"))
         page.evaluate("() => { document.getElementById('nameInput').value = 'Juwen'; document.getElementById('startBtn').click(); }")
         page.wait_for_timeout(1200)
+
+        # G2: a new player sees the how-to-play guide before the game, can step through and skip it
+        check("guide shows before the game starts", page.locator("#guide").is_visible() and not page.locator("#hud").is_visible())
+        steps = 1
+        for _ in range(8):
+            if not page.locator("#guide").is_visible() or "begin" in page.inner_text("#guideNext").lower() or "next" not in page.inner_text("#guideNext").lower():
+                break
+            page.evaluate("() => document.getElementById('guideNext').click()")
+            page.wait_for_timeout(120)
+            steps += 1
+        check("guide has at least 4 steps", steps >= 4, steps)
+        page.evaluate("() => document.getElementById('guideSkip').click()")
+        page.wait_for_timeout(1500)
+
+        # G3: the character creator follows, with a live 3D preview and many choices
+        check("character creator opens after the guide", page.locator("#creator").is_visible())
+        check("creator has a live 3D preview canvas", page.evaluate("() => { const c = document.querySelector('#creator canvas'); return Boolean(c && c.width > 100 && c.height > 100); }"))
+        choice_count = page.evaluate("async () => Object.keys((await import('./js/look.js')).LOOK_OPTIONS).length")
+        check("creator offers at least 8 kinds of choice", choice_count >= 8, choice_count)
+        tabs = page.evaluate("() => document.querySelectorAll('#creator .creator-tabs .tab').length")
+        check("creator has body, face, hair and clothes tabs", tabs == 4, tabs)
+        before = page.evaluate("() => document.querySelectorAll('#creator .creator-field').length")
+        page.evaluate("() => document.querySelectorAll('#creator .creator-tabs .tab')[2].click()")
+        page.wait_for_timeout(200)
+        hair_buttons = page.evaluate("() => document.querySelectorAll('#creator .creator-field .seg-btn').length")
+        check("hair tab lists hair styles", hair_buttons >= 8 and before > 0, hair_buttons)
+        page.evaluate("() => document.getElementById('creatorRandom').click()")
+        page.wait_for_timeout(200)
+        page.evaluate("() => document.getElementById('creatorDone').click()")
+        page.wait_for_timeout(1200)
         check("starting a game shows the HUD", page.locator("#hud").is_visible())
+        check("the new player has a sanitised look", page.evaluate("() => { const l = window.teduh.game.s.look; return Boolean(l && l.skin && l.hair && l.top); }"))
         check("goal card shows the first goal", "tree" in page.inner_text("#goalText").lower())
         nonblank = page.evaluate("""() => { const c = document.getElementById('scene'); const g = document.createElement('canvas'); g.width = 64; g.height = 64;
             const x = g.getContext('2d'); x.drawImage(c, 0, 0, 64, 64); const d = x.getImageData(0, 0, 64, 64).data; const set = new Set();
@@ -309,7 +340,10 @@ def run(args):
             page.evaluate("() => document.getElementById('panel').close()")
             page.wait_for_timeout(150)
         page.evaluate("() => { window.teduh.game.s.pos.x = -2.6; window.teduh.game.s.pos.z = -2.0; }")
-        page.wait_for_timeout(300)
+        try:  # software rendering in CI can take a few frames before the prompt updates
+            page.wait_for_function("() => /workbench/i.test(document.getElementById('actionLabel').textContent)", timeout=15000)
+        except Exception:
+            pass
         check("workbench prompt appears next to the workbench", "workbench" in page.inner_text("#actionLabel").lower(), page.inner_text("#actionLabel"))
         page.keyboard.press("e")
         page.wait_for_timeout(250)
@@ -317,6 +351,49 @@ def run(args):
         if shots:
             page.screenshot(path=str(shots / "panel-workbench-1280.png"))
         page.evaluate("() => document.getElementById('panel').close()")
+
+        # G4: the look saves, survives a reload and is sanitised everywhere
+        page.evaluate("() => window.teduh.setLook({ hair: 'bun', skin: '#6c3f27', top: 'batik', topColor: '#2f6e6a', bottom: 'sarong' })")
+        page.wait_for_timeout(300)
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_function("() => window.teduh && window.teduh.S", timeout=60000)
+        saved = page.evaluate("() => window.teduh.S.deserialize(localStorage.getItem('teduh.save.v1')).look")
+        check("chosen look survives a reload", saved and saved.get("hair") == "bun" and saved.get("top") == "batik" and saved.get("bottom") == "sarong", saved)
+        bad = page.evaluate("""async () => { const L = await import('./js/look.js');
+            const a = L.sanitizeLook({ hair: '<img onerror=x>', skin: 'javascript:1', top: 'batik', height: 99, __proto__: { x: 1 } });
+            const b = L.sanitizeLook(null, '#3f7d4e');
+            return { hair: a.hair, skin: a.skin, top: a.top, height: a.height, keys: Object.keys(a).length, fallback: b.topColor }; }""")
+        check("sanitizeLook rejects bad values and keeps good ones", bad["hair"] == "short" and bad["skin"].startswith("#") and bad["top"] == "batik" and bad["height"] in (0, 1, 2, 3, 4) and bad["keys"] == 14, bad)
+        check("old saves keep their shirt colour", bad["fallback"] == "#3f7d4e", bad)
+        net_src = (ROOT / "js" / "net.js").read_text(encoding="utf-8")
+        check("friends' looks are sanitised on receive", "sanitizeLook(data.look" in net_src)
+        page.evaluate("() => { const b = document.querySelector('#continueBtn, #startBtn'); if (b) b.click(); }")
+        page.wait_for_timeout(1500)
+        if page.locator("#guide").is_visible():
+            page.evaluate("() => document.getElementById('guideSkip').click()")
+            page.wait_for_timeout(1200)
+        if page.locator("#creator").is_visible():
+            page.evaluate("() => document.getElementById('creatorDone').click()")
+            page.wait_for_timeout(1200)
+
+        # G2: the guide and the creator can be reopened from Settings
+        page.evaluate("() => document.getElementById('dock-settings').click()")
+        page.wait_for_timeout(250)
+        check("Settings has How to play and Change look", page.locator("#guideBtn").count() == 1 and page.locator("#changeLookBtn").count() == 1)
+        page.evaluate("() => document.getElementById('guideBtn').click()")
+        page.wait_for_timeout(300)
+        check("How to play reopens the guide", page.locator("#guide").is_visible())
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+        check("Escape closes the guide", not page.locator("#guide").is_visible())
+        page.evaluate("() => document.getElementById('dock-settings').click()")
+        page.wait_for_timeout(250)
+        page.evaluate("() => document.getElementById('changeLookBtn').click()")
+        page.wait_for_timeout(800)
+        check("Change look reopens the creator", page.locator("#creator").is_visible())
+        page.evaluate("() => document.getElementById('creatorCancel').click()")
+        page.wait_for_timeout(300)
+        check("cancel closes the creator", not page.locator("#creator").is_visible())
 
         # language switch
         page.evaluate("() => window.teduh.game.setLang('id')")
@@ -348,10 +425,23 @@ def run(args):
         phone.close()
         title_phone = phone_ctx.new_page()
         title_phone.goto(base + "index.html?test=1", wait_until="domcontentloaded", timeout=90000)
+        title_phone.evaluate("() => localStorage.removeItem('teduh.save.v1')")
+        title_phone.reload(wait_until="domcontentloaded")
         title_phone.wait_for_timeout(1500)
         check("no horizontal overflow on the phone title screen", title_phone.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 0)
         if shots:
             title_phone.screenshot(path=str(shots / "title-390.png"))
+        title_phone.evaluate("() => { document.getElementById('nameInput').value = 'Juwen'; document.getElementById('startBtn').click(); }")
+        title_phone.wait_for_timeout(1000)
+        check("no horizontal overflow on the phone guide", title_phone.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 0)
+        title_phone.evaluate("() => document.getElementById('guideSkip').click()")
+        title_phone.wait_for_timeout(1500)
+        check("no horizontal overflow on the phone creator", title_phone.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 0)
+        views_clear = title_phone.evaluate("""() => { const v = document.querySelector('.creator-views').getBoundingClientRect(); const s = document.querySelector('.creator-stage').getBoundingClientRect();
+            return v.top >= s.top && v.bottom <= s.bottom && v.left >= s.left && v.right <= s.right && [...document.querySelectorAll('.creator-views .seg-btn')].every((b) => b.scrollWidth <= b.clientWidth + 1); }""")
+        check("phone creator view buttons fit without wrapping", views_clear)
+        if shots:
+            title_phone.screenshot(path=str(shots / "creator-390.png"))
 
         real_errors = [e for e in errors if "favicon" not in e]
         check("no JavaScript errors in the console", not real_errors, real_errors[:5])

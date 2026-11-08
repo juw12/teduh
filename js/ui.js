@@ -204,27 +204,18 @@ export const forceHud = () => {
 };
 
 // ---------- title screen ----------
-export function showTitle({ hasSave, settings, onContinue, onStart, onLang }) {
+export function showTitle({ hasSave, settings, onContinue, onStart, onLang, onHowTo }) {
   const title = $('#title');
   title.hidden = false;
-  let color = AVATAR_COLORS[2];
   const render = () => {
-    const colorPicker = h('div', { class: 'colors', role: 'radiogroup', 'aria-label': t('colour') }, AVATAR_COLORS.map((c) => h('button', {
-      type: 'button', class: `color${c === color ? ' on' : ''}`, role: 'radio', 'aria-checked': c === color ? 'true' : 'false', 'aria-label': c,
-      style: { background: c }, onclick: () => {
-        color = c;
-        render();
-      },
-    })));
     const name = h('input', { id: 'nameInput', class: 'input', maxlength: '18', autocomplete: 'nickname', placeholder: 'Traveller', value: settings.name || '' });
     const form = h('form', {
       class: 'start-form', onsubmit: (event) => {
         event.preventDefault();
-        onStart({ name: name.value, color, lang: getLang() });
+        onStart({ name: name.value, lang: getLang() });
       },
     },
     h('label', { class: 'field' }, h('span', { text: t('yourName') }), name),
-    h('div', { class: 'field' }, h('span', { text: t('colour') }), colorPicker),
     h('div', { class: 'field' }, h('span', { text: t('language') }), h('div', { class: 'seg' },
       ['en', 'id'].map((code) => h('button', {
         type: 'button', class: `seg-btn${getLang() === code ? ' on' : ''}`, 'aria-pressed': getLang() === code ? 'true' : 'false',
@@ -242,8 +233,7 @@ export function showTitle({ hasSave, settings, onContinue, onStart, onLang }) {
       h('p', { class: 'title-sub', text: t('sub') }),
       hasSave ? h('button', { class: 'btn primary wide', type: 'button', id: 'continueBtn', onclick: onContinue, text: t('continue') }) : null,
       form,
-      h('details', { class: 'howto' }, h('summary', { text: t('controlsTitle') }), h('ul', {},
-        ['controlsMove', 'controlsAct', 'controlsCam', 'controlsMenus'].map((k) => h('li', { text: t(k) })))),
+      h('button', { class: 'btn ghost wide howto-btn', type: 'button', id: 'howToBtn', onclick: () => onHowTo?.(), text: t('howToPlay') }),
       h('p', { class: 'fine' }, `v${VERSION} · `, h('a', { href: 'https://github.com/juw12/teduh', target: '_blank', rel: 'noopener', text: 'GitHub' }), ' · MIT')));
   };
   render();
@@ -525,9 +515,9 @@ export function openSettings(game) {
       seg(t('sound'), [[true, t('on')], [false, t('off')]], st.sound, (v) => game.setSetting('sound', v)),
       seg(t('quality'), [['high', t('qualityHigh')], ['low', t('qualityLow')]], st.quality, (v) => game.setSetting('quality', v)),
       seg(t('motion'), [[true, t('on')], [false, t('off')]], st.motion, (v) => game.setSetting('motion', v)),
-      h('div', { class: 'field' }, h('span', { text: t('colour') }), h('div', { class: 'colors' }, AVATAR_COLORS.map((c) => h('button', {
-        type: 'button', class: `color${c === game.s.color ? ' on' : ''}`, 'aria-label': c, 'aria-pressed': c === game.s.color ? 'true' : 'false', style: { background: c }, onclick: () => game.setColor(c),
-      })))),
+      h('div', { class: 'btn-row' },
+        h('button', { class: 'btn', type: 'button', id: 'changeLookBtn', onclick: () => game.openCreator(), text: t('changeLook') }),
+        h('button', { class: 'btn', type: 'button', id: 'guideBtn', onclick: () => game.openGuide(), text: t('howToPlay') })),
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn', type: 'button', onclick: () => game.photo(), text: t('photo') }),
         game.canInstall() ? h('button', { class: 'btn', type: 'button', onclick: () => game.install(), text: t('install') }) : null),
