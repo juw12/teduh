@@ -66,7 +66,7 @@ SETUP = """() => {
 
 # clock: time of day = clock / 600 + 0.3 (mod 1)
 FRAMES = {
-    "g1": {"clock": 588, "x": 0.5, "z": 2.0, "f": 0.4, "yaw": 0.55, "zoom": 1.15, "js": ""},
+    "g1": {"clock": 0, "x": 0.5, "z": 2.0, "f": 0.4, "yaw": 0.55, "zoom": 1.15, "js": ""},
     "g2": {"clock": 40, "x": -8.4, "z": -3.0, "f": -2.0, "yaw": -0.9, "zoom": 0.5, "js": """
         T.world.setHighlight(T.world.interactables.find((e) => e.key === 'n:0'));
     """},
