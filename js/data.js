@@ -1,7 +1,9 @@
 // Teduh game content. Everything the rules (state.js) and the world (world.js) need lives here,
 // so balancing the game means editing numbers in one file.
 
-export const VERSION = '1.4.0';
+import { expandWorld } from './farskies.js';
+
+export const VERSION = '1.5.0';
 export const DAY_LENGTH = 600; // seconds of play per in-game day (10 minutes)
 export const START_TIME_OF_DAY = 0.3; // a new save starts in the early morning
 
@@ -342,3 +344,6 @@ export const PHRASES = [
   { id: 'project', en: 'Let us finish a project', idn: 'Ayo selesaikan proyek' },
   { id: 'bye', en: 'Good night, see you', idn: 'Selamat malam, sampai jumpa' },
 ];
+
+// Far Skies: append the generated archipelago, villagers, animals, crops, fish and dishes (see farskies.js).
+export const FAR_SKIES = expandWorld({ ITEMS, CROPS, RECIPES, NPCS, CRITTERS, SMOG_SPOTS, ISLANDS, BRIDGES, NODE_SPOTS, FIXTURES, FISH_SPOTS, PROJECTS, QUESTS });

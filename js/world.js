@@ -3,6 +3,9 @@
 
 import * as THREE from '../vendor/three.module.min.js';
 import { ISLANDS, BRIDGES, FIXTURES, NODE_SPOTS, NPCS, ITEMS, CROPS, SMOG_SPOTS, CRITTERS } from './data.js';
+import { SPECIES } from './farskies.js';
+
+const SPECIES_BY_ID = Object.fromEntries(SPECIES.map((sp) => [sp.id, sp]));
 import { makeCharacter, applyLook, animateCharacter } from './character.js';
 import { sanitizeLook } from './look.js';
 import {
@@ -12,6 +15,9 @@ import {
 
 const materialCache = new Map();
 const HAZE = new THREE.Color('#a49d8c');
+const SKY_TOP = new THREE.Color('#3f7fb8');
+const SKY_NIGHT = new THREE.Color('#14243f');
+const CLOUD_WHITE = new THREE.Color('#f6f8f8');
 function mat(color, extra = {}) {
   const key = color + JSON.stringify(extra);
   if (!materialCache.has(key)) {
@@ -77,7 +83,118 @@ function makePet() {
 }
 
 // ---------- clean skies: smog heaps, rescued animals and island blooms ----------
-export function makeCritter(type) {
+
+// Far Skies animals: one parametric model per body plan, coloured by morph.
+function makeAnimal(def) {
+  const g = new THREE.Group();
+  const sp = SPECIES_BY_ID[def.species];
+  const c = def.color;
+  const a = def.accent;
+  const s = sp.size;
+  const eyeGeo = new THREE.SphereGeometry(0.03 * s + 0.008, 6, 6);
+  if (sp.shape === 'bird') {
+    const body = at(mesh(new THREE.SphereGeometry(0.24 * s, 10, 8), c), 0, 0.32 * s, 0);
+    body.scale.set(1, sp.flat ? 0.75 : 1.05, sp.flat ? 1.35 : 1);
+    const head = at(mesh(new THREE.SphereGeometry(0.15 * s, 10, 8), c), 0, 0.6 * s, sp.flat ? 0.22 * s : 0.05 * s);
+    const beak = at(mesh(new THREE.ConeGeometry(0.05 * s, (sp.flat ? 0.16 : 0.1) * s, 5), sp.beak), 0, 0.58 * s, (sp.flat ? 0.38 : 0.2) * s);
+    beak.rotation.x = Math.PI / 2;
+    if (sp.flat) {
+      beak.scale.set(1.4, 1, 0.5);
+    }
+    const wingGeo = new THREE.SphereGeometry(0.13 * s, 8, 6);
+    const wingL = at(mesh(wingGeo, a), -0.2 * s, 0.34 * s, -0.02);
+    const wingR = at(mesh(wingGeo, a), 0.2 * s, 0.34 * s, -0.02);
+    wingL.scale.set(0.45, 0.9, 1.4);
+    wingR.scale.set(0.45, 0.9, 1.4);
+    g.add(body, head, beak, wingL, wingR);
+    if (sp.tufts) {
+      const tuftGeo = new THREE.ConeGeometry(0.04 * s, 0.12 * s, 4);
+      g.add(at(mesh(tuftGeo, a), -0.08 * s, 0.75 * s, 0.03), at(mesh(tuftGeo, a), 0.08 * s, 0.75 * s, 0.03));
+    }
+    if (sp.crest) {
+      const crest = at(mesh(new THREE.ConeGeometry(0.05 * s, 0.18 * s, 4), a), 0, 0.78 * s, 0);
+      crest.rotation.x = -0.4;
+      g.add(crest);
+    }
+    const legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.14 * s, 5);
+    g.add(at(mesh(legGeo, sp.beak), -0.07 * s, 0.07 * s, 0), at(mesh(legGeo, sp.beak), 0.07 * s, 0.07 * s, 0));
+    const ez = (sp.flat ? 0.33 : 0.17) * s;
+    g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.07 * s, 0.64 * s, ez), at(mesh(eyeGeo, '#1d1d1b'), 0.07 * s, 0.64 * s, ez));
+    return g;
+  }
+  if (sp.shape === 'frog') {
+    const body = at(mesh(new THREE.SphereGeometry(0.25 * s, 10, 8), c), 0, 0.16 * s, 0);
+    body.scale.set(1.2, 0.7, 1);
+    const eyeBall = new THREE.SphereGeometry(0.08 * s, 8, 6);
+    g.add(body, at(mesh(eyeBall, c), -0.12 * s, 0.32 * s, 0.12 * s), at(mesh(eyeBall, c), 0.12 * s, 0.32 * s, 0.12 * s));
+    g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.12 * s, 0.35 * s, 0.18 * s), at(mesh(eyeGeo, '#1d1d1b'), 0.12 * s, 0.35 * s, 0.18 * s));
+    const legGeo = new THREE.SphereGeometry(0.09 * s, 6, 5);
+    [[-0.22, -0.1], [0.22, -0.1], [-0.16, 0.16], [0.16, 0.16]].forEach(([x, z]) => {
+      const leg = at(mesh(legGeo, a), x * s, 0.06 * s, z * s);
+      leg.scale.set(1.3, 0.5, 1.2);
+      g.add(leg);
+    });
+    return g;
+  }
+  // four-legged
+  const h = sp.low ? 0.22 : sp.slim ? 0.42 : 0.34;
+  const bodyGeo = sp.wool ? new THREE.IcosahedronGeometry(0.32 * s, 1) : new THREE.SphereGeometry(0.26 * s, 10, 8);
+  const body = at(mesh(bodyGeo, sp.wool ? '#f1ede4' : c), 0, h * s + 0.12 * s, 0);
+  body.scale.set(sp.slim ? 0.8 : 1, sp.low ? 0.75 : 0.9, sp.low ? 1.7 : 1.35);
+  const head = at(mesh(new THREE.SphereGeometry(0.17 * s, 10, 8), c), 0, (h + 0.32) * s, 0.36 * s);
+  g.add(body, head);
+  const legGeo = new THREE.CylinderGeometry(0.045 * s, 0.04 * s, h * s + 0.06, 6);
+  [[-0.13, -0.2], [0.13, -0.2], [-0.13, 0.2], [0.13, 0.2]].forEach(([x, z]) => g.add(at(mesh(legGeo, a), x * s, (h * s + 0.06) / 2, z * s)));
+  const earY = (h + 0.47) * s;
+  if (sp.ears === 'long') {
+    const earGeo = new THREE.CylinderGeometry(0.035 * s, 0.05 * s, 0.32 * s, 6);
+    g.add(at(mesh(earGeo, c), -0.07 * s, earY + 0.1 * s, 0.33 * s), at(mesh(earGeo, c), 0.07 * s, earY + 0.1 * s, 0.33 * s));
+  } else if (sp.ears === 'point') {
+    const earGeo = new THREE.ConeGeometry(0.06 * s, 0.13 * s, 4);
+    g.add(at(mesh(earGeo, c), -0.09 * s, earY, 0.34 * s), at(mesh(earGeo, c), 0.09 * s, earY, 0.34 * s));
+  } else if (sp.ears === 'flop') {
+    const earGeo = new THREE.BoxGeometry(0.14 * s, 0.04 * s, 0.08 * s);
+    g.add(at(mesh(earGeo, a), -0.18 * s, (h + 0.36) * s, 0.36 * s), at(mesh(earGeo, a), 0.18 * s, (h + 0.36) * s, 0.36 * s));
+  } else {
+    const earGeo = new THREE.SphereGeometry(0.05 * s, 6, 5);
+    g.add(at(mesh(earGeo, a), -0.11 * s, earY - 0.04 * s, 0.34 * s), at(mesh(earGeo, a), 0.11 * s, earY - 0.04 * s, 0.34 * s));
+  }
+  if (sp.horns) {
+    const hornGeo = new THREE.TorusGeometry(0.12 * s, 0.025 * s, 5, 10, Math.PI);
+    const horns = at(mesh(hornGeo, '#d8d0bc'), 0, (h + 0.45) * s, 0.36 * s);
+    g.add(horns);
+  }
+  if (sp.wool) {
+    g.add(at(mesh(new THREE.IcosahedronGeometry(0.12 * s, 1), '#f1ede4'), 0, (h + 0.46) * s, 0.33 * s));
+  }
+  if (sp.spikes) {
+    const spikeGeo = new THREE.ConeGeometry(0.03 * s, 0.14 * s, 4);
+    for (let i = 0; i < 12; i += 1) {
+      const ang = (i / 12) * Math.PI;
+      const spike = at(mesh(spikeGeo, a), Math.cos(ang) * 0.2 * s, (h + 0.12) * s + Math.sin(ang) * 0.2 * s, -0.05 * s + (i % 3) * 0.08 * s);
+      spike.rotation.z = ang - Math.PI / 2;
+      g.add(spike);
+    }
+  }
+  if (sp.tail === 'long' || sp.tail === 'thin') {
+    const tail = at(mesh(new THREE.CylinderGeometry(0.025 * s, 0.04 * s, 0.35 * s, 5), sp.tail === 'thin' ? a : c), 0, (h + 0.2) * s, -0.42 * s);
+    tail.rotation.x = -0.9;
+    g.add(tail);
+  } else if (sp.tail === 'bushy') {
+    const tail = at(mesh(new THREE.SphereGeometry(0.15 * s, 8, 6), c), 0, (h + 0.32) * s, -0.36 * s);
+    tail.scale.set(0.8, 1.6, 0.8);
+    g.add(tail);
+  } else if (sp.tail === 'puff') {
+    g.add(at(mesh(new THREE.SphereGeometry(0.07 * s, 6, 5), '#f1ede4'), 0, (h + 0.16) * s, -0.36 * s));
+  }
+  g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.07 * s, (h + 0.36) * s, 0.5 * s), at(mesh(eyeGeo, '#1d1d1b'), 0.07 * s, (h + 0.36) * s, 0.5 * s));
+  g.add(at(mesh(new THREE.SphereGeometry(0.03 * s, 6, 5), '#2a2420'), 0, (h + 0.3) * s, 0.53 * s));
+  return g;
+}
+export function makeCritter(type, def = null) {
+  if (def && def.species) {
+    return makeAnimal(def);
+  }
   const g = new THREE.Group();
   if (type === 'hen') {
     const body = at(mesh(new THREE.SphereGeometry(0.22, 10, 8), '#f4f0e6'), 0, 0.3, 0);
@@ -241,18 +358,20 @@ function jitter(geometry, rng, amount, keepTop) {
 }
 function makeIsland(island, rng) {
   const g = new THREE.Group();
-  const top = at(mesh(new THREE.CylinderGeometry(island.r, island.r * 0.98, 0.6, 48), '#8db36f'), 0, -0.3, 0);
+  const pal = island.palette || { top: '#8db36f', rim: '#93704c', under: '#8f8a80', crystal: '#9fd3cf' };
+  g.userData.islandBody = true;
+  const top = at(mesh(new THREE.CylinderGeometry(island.r, island.r * 0.98, 0.6, 48), pal.top), 0, -0.3, 0);
   top.castShadow = false;
-  const rim = at(mesh(new THREE.CylinderGeometry(island.r * 0.985, island.r * 0.9, 1.2, 48), '#93704c'), 0, -1.2, 0);
+  const rim = at(mesh(new THREE.CylinderGeometry(island.r * 0.985, island.r * 0.9, 1.2, 48), pal.rim), 0, -1.2, 0);
   const underGeo = jitter(new THREE.ConeGeometry(island.r * 0.9, island.r * 1.15, 14, 4), rng, 1.3, true);
-  const under = at(mesh(underGeo, '#8f8a80'), 0, -1.8 - island.r * 0.575, 0);
+  const under = at(mesh(underGeo, pal.under), 0, -1.8 - island.r * 0.575, 0);
   under.rotation.x = Math.PI;
   g.add(top, rim, under);
   // a few hanging roots and crystals under the island for silhouette
   for (let i = 0; i < 5; i += 1) {
     const a = rng() * Math.PI * 2;
     const d = island.r * (0.3 + rng() * 0.4);
-    const crystal = at(mesh(new THREE.OctahedronGeometry(0.4 + rng() * 0.3, 0), '#9fd3cf', { roughness: 0.4 }), Math.sin(a) * d, -3 - rng() * island.r * 0.5, Math.cos(a) * d);
+    const crystal = at(mesh(new THREE.OctahedronGeometry(0.4 + rng() * 0.3, 0), pal.crystal, { roughness: 0.4 }), Math.sin(a) * d, -3 - rng() * island.r * 0.5, Math.cos(a) * d);
     crystal.scale.y = 2;
     g.add(crystal);
   }
@@ -417,15 +536,15 @@ function makeBridge(seg, broken) {
 }
 
 // ---------- nodes ----------
-function makeNode(type, rng) {
+function makeNode(type, rng, palette = null) {
   const g = new THREE.Group();
   const ud = { type, parts: {} };
   if (type === 'tree') {
     const trunk = at(mesh(new THREE.CylinderGeometry(0.15, 0.22, 1.2, 6), '#7a5636'), 0, 0.6, 0);
     const crown = new THREE.Group();
-    const greens = ['#5d8f45', '#6a9c4c', '#4f8040', '#78a656'];
-    const big = at(mesh(new THREE.IcosahedronGeometry(0.95, 0), greens[Math.floor(rng() * 4)]), 0, 1.7, 0);
-    const small = at(mesh(new THREE.IcosahedronGeometry(0.65, 0), greens[Math.floor(rng() * 4)]), 0.35, 2.35, 0.1);
+    const greens = palette ? palette.leaf : ['#5d8f45', '#6a9c4c', '#4f8040', '#78a656'];
+    const big = at(mesh(new THREE.IcosahedronGeometry(0.95, 0), greens[Math.floor(rng() * greens.length)]), 0, 1.7, 0);
+    const small = at(mesh(new THREE.IcosahedronGeometry(0.65, 0), greens[Math.floor(rng() * greens.length)]), 0.35, 2.35, 0.1);
     crown.add(big, small);
     g.add(trunk, crown);
     ud.parts = { trunk, crown };
@@ -452,7 +571,7 @@ function makeNode(type, rng) {
     g.add(pile);
     ud.parts = { main: pile };
   } else if (type === 'bush' || type === 'berrybush') {
-    const bush = at(mesh(new THREE.IcosahedronGeometry(0.55, 0), type === 'bush' ? '#7aa35a' : '#5d8f45'), 0, 0.38, 0);
+    const bush = at(mesh(new THREE.IcosahedronGeometry(0.55, 0), palette ? palette.leaf[type === 'bush' ? 0 : 1] : type === 'bush' ? '#7aa35a' : '#5d8f45'), 0, 0.38, 0);
     bush.scale.set(1.1, 0.8, 1);
     g.add(bush);
     const berries = new THREE.Group();
@@ -693,11 +812,33 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
   sc.far = 120;
   sun.shadow.bias = -0.0008;
   scene.add(hemi, sun, sun.target);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+
+  // sky dome: a soft vertical gradient instead of one flat colour
+  const skyUniforms = {
+    top: { value: new THREE.Color('#5d9cc4') },
+    horizon: { value: new THREE.Color('#a8d4e6') },
+    bottom: { value: new THREE.Color('#eef3f4') },
+  };
+  const skyDome = new THREE.Mesh(new THREE.SphereGeometry(360, 32, 16), new THREE.ShaderMaterial({
+    uniforms: skyUniforms, side: THREE.BackSide, depthWrite: false, fog: false,
+    vertexShader: 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 horizon; uniform vec3 bottom; varying vec3 vDir; void main() { float h = vDir.y; vec3 c = h > 0.0 ? mix(horizon, top, pow(min(h * 1.7, 1.0), 0.75)) : mix(horizon, bottom, min(-h * 3.0, 1.0)); gl_FragColor = vec4(c, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
+  }));
+  skyDome.renderOrder = -10;
+  skyDome.frustumCulled = false;
+  scene.add(skyDome);
+  // a sea of cloud far below the islands; fog melts it into the horizon
+  const cloudSea = new THREE.Mesh(new THREE.CircleGeometry(520, 48), new THREE.MeshBasicMaterial({ color: '#eef3f4' }));
+  cloudSea.rotation.x = -Math.PI / 2;
+  cloudSea.position.y = -44;
+  scene.add(cloudSea);
 
   const world = {
     renderer, scene, camera, yaw: 0, zoom: 1, interactables: [], nodeMeshes: [], placedMeshes: new Map(),
     pickables: [], peers: new Map(), npcMeshes: {}, fixtureMeshes: {}, bridgeGroups: {}, unlockKey: '',
-    reducedMotion: false, ghost: null, quality,
+    reducedMotion: false, ghost: null, quality, farGroups: {},
   };
 
   // islands
@@ -708,6 +849,9 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     const a = rng() * Math.PI * 2;
     const d = 45 + rng() * 30;
     const chunk = at(mesh(jitter(new THREE.DodecahedronGeometry(1 + rng() * 1.6, 0), rng, 0.6, false), '#8f8a80'), Math.sin(a) * d, -4 + rng() * 10, Math.cos(a) * d - 10);
+    if (ISLANDS.some((isl) => Math.hypot(isl.x - chunk.position.x, isl.z - chunk.position.z) < isl.r + 9)) {
+      continue;
+    }
     const cap = at(mesh(new THREE.CylinderGeometry(1.0, 1.1, 0.3, 8), '#8db36f'), 0, 0.9, 0);
     chunk.add(cap);
     scene.add(chunk);
@@ -792,13 +936,14 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     }
     scene.add(object);
     world.fixtureMeshes[f.id] = object;
-    register({ key: `f:${f.id}`, kind: f.kind, id: f.id, x: f.x, z: f.z, r: radius, project: f.project }, object);
+    register({ key: `f:${f.id}`, kind: f.kind, id: f.id, x: f.x, z: f.z, r: radius, project: f.project, spot: f.spot }, object);
   });
 
   // gathering nodes
   const nodeRng = mulberry32(7);
   NODE_SPOTS.forEach(([type, x, z], index) => {
-    const object = at(makeNode(type, nodeRng), x, 0, z);
+    const home = ISLANDS.find((i) => Math.hypot(x - i.x, z - i.z) < i.r);
+    const object = at(makeNode(type, nodeRng, home && home.palette ? home.palette : null), x, 0, z);
     object.rotation.y = nodeRng() * Math.PI * 2;
     scene.add(object);
     world.nodeMeshes[index] = object;
@@ -820,7 +965,7 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
   world.critterMeshes = {};
   world.critterEntries = {};
   Object.entries(CRITTERS).forEach(([id, critter], i) => {
-    const object = at(makeCritter(id), critter.home.x, 0, critter.home.z);
+    const object = at(makeCritter(id, critter), critter.home.x, 0, critter.home.z);
     object.visible = false;
     object.userData.phase = i * 2.1;
     scene.add(object);
@@ -918,18 +1063,19 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
   };
 
   world.refreshUnlocks = (s) => {
-    const key = ['bridge', 'tower', 'dock', 'lighthouse'].map((id) => (projectDone(s, id) ? 1 : 0)).join('');
+    const key = ['bridge', 'tower', 'dock', 'lighthouse', 'skyway'].map((id) => (projectDone(s, id) ? 1 : 0)).join('');
     if (key === world.unlockKey) {
       return;
     }
     world.unlockKey = key;
     BRIDGES.forEach((bridge) => {
+      const holder = world.farGroups[bridge.to] || scene;
       if (world.bridgeGroups[bridge.id]) {
-        scene.remove(world.bridgeGroups[bridge.id]);
+        world.bridgeGroups[bridge.id].parent.remove(world.bridgeGroups[bridge.id]);
       }
       const group = makeBridge(bridgeSegment(bridge), !unlocked(s, bridge.needs));
       world.bridgeGroups[bridge.id] = group;
-      scene.add(group);
+      holder.add(group);
     });
     FIXTURES.filter((f) => f.kind === 'site').forEach((f) => {
       world.fixtureMeshes[f.id].visible = !projectDone(s, f.project);
@@ -1143,6 +1289,10 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     sun.color.set(light < 0.4 ? '#ffd2a8' : '#fff4e0');
     hemi.intensity = 0.32 + 0.5 * light;
     hemi.color.set(light < 0.1 ? '#8fa6c8' : '#e8f2f6');
+    if (world.artTick) {
+      world.artClock(dt);
+      world.artTick(tod, light, tmpColor);
+    }
 
     // player
     player.position.set(s.pos.x, 0, s.pos.z);
@@ -1322,6 +1472,105 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
   world.photo = () => {
     renderer.render(scene, camera);
     return canvas.toDataURL('image/png');
+  };
+
+  // grass tufts on every island, one instanced draw call
+  const tuftGeo = new THREE.ConeGeometry(0.07, 0.38, 3);
+  tuftGeo.translate(0, 0.19, 0);
+  const tufts = [];
+  const grassRng = mulberry32(77);
+  const waters = FIXTURES.filter((f) => f.r);
+  ISLANDS.forEach((island) => {
+    const n = Math.round(island.r * island.r * 0.55);
+    const base = new THREE.Color(island.palette ? island.palette.top : '#8db36f');
+    for (let i = 0; i < n; i += 1) {
+      const a = grassRng() * Math.PI * 2;
+      const d = Math.sqrt(grassRng()) * (island.r - 0.9);
+      const x = island.x + Math.sin(a) * d;
+      const z = island.z + Math.cos(a) * d;
+      if (waters.some((f) => Math.hypot(x - f.x, z - f.z) < f.r + 0.4)) {
+        continue;
+      }
+      tufts.push({ x, z, s: 0.6 + grassRng() * 0.8, turn: grassRng() * 6.28, color: base.clone().offsetHSL(0, 0.03, -0.07 - grassRng() * 0.1) });
+    }
+  });
+  const grass = new THREE.InstancedMesh(tuftGeo, new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), tufts.length);
+  const dummy = new THREE.Object3D();
+  tufts.forEach((tuft, i) => {
+    dummy.position.set(tuft.x, 0, tuft.z);
+    dummy.rotation.set(0, tuft.turn, 0);
+    dummy.scale.set(tuft.s, tuft.s, tuft.s);
+    dummy.updateMatrix();
+    grass.setMatrixAt(i, dummy.matrix);
+    grass.setColorAt(i, tuft.color);
+  });
+  grass.frustumCulled = false;
+  scene.add(grass);
+
+  // fireflies drift around you after dusk
+  const flyCount = 42;
+  const flyBase = new Float32Array(flyCount * 3);
+  for (let i = 0; i < flyCount; i += 1) {
+    flyBase[i * 3] = (grassRng() - 0.5) * 22;
+    flyBase[i * 3 + 1] = 0.4 + grassRng() * 2.2;
+    flyBase[i * 3 + 2] = (grassRng() - 0.5) * 22;
+  }
+  const flyGeo = new THREE.BufferGeometry();
+  flyGeo.setAttribute('position', new THREE.BufferAttribute(flyBase.slice(), 3));
+  const flies = new THREE.Points(flyGeo, new THREE.PointsMaterial({ color: '#f6e27a', size: 0.17, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  flies.frustumCulled = false;
+  scene.add(flies);
+
+  // Far Skies: each far island's contents sit in one container so whole islands can be culled by distance.
+  const farIslands = ISLANDS.filter((i) => i.far);
+  farIslands.forEach((island) => {
+    const group = new THREE.Group();
+    group.userData.island = island;
+    world.farGroups[island.id] = group;
+  });
+  [...scene.children].forEach((child) => {
+    if (child.userData.islandBody || child === player || child === pet) {
+      return;
+    }
+    const island = farIslands.find((i) => Math.hypot(child.position.x - i.x, child.position.z - i.z) < i.r + 0.5);
+    if (island) {
+      world.farGroups[island.id].add(child);
+    }
+  });
+  const farGroupList = Object.values(world.farGroups);
+  farGroupList.forEach((group) => scene.add(group));
+  world.cullFar = (x, z) => {
+    farGroupList.forEach((group) => {
+      const island = group.userData.island;
+      group.visible = Math.hypot(island.x - x, island.z - z) < 70 + island.r;
+    });
+  };
+  world.artTick = (tod, light, color) => {
+    skyDome.position.copy(camera.position);
+    const night = Math.max(0, Math.min(1, (0.4 - light) * 3));
+    skyUniforms.horizon.value.copy(color).lerp(SKY_NIGHT, 0.45 * night);
+    skyUniforms.top.value.copy(color).lerp(SKY_TOP, 0.25 + 0.35 * light).lerp(SKY_NIGHT, 0.8 * night).multiplyScalar(0.55 + 0.45 * light);
+    skyUniforms.bottom.value.copy(color).lerp(CLOUD_WHITE, 0.45 * light).lerp(SKY_NIGHT, 0.5 * night);
+    cloudSea.material.color.copy(skyUniforms.bottom.value);
+    cloudSea.position.x = player.position.x;
+    cloudSea.position.z = player.position.z;
+    flies.material.opacity = night * 0.95;
+    flies.visible = night > 0.01;
+    if (flies.visible) {
+      const pos = flyGeo.attributes.position;
+      for (let i = 0; i < flyCount; i += 1) {
+        const t = elapsedArt + i * 1.7;
+        pos.array[i * 3] = player.position.x + flyBase[i * 3] + Math.sin(t * 0.5) * 0.8;
+        pos.array[i * 3 + 1] = flyBase[i * 3 + 1] + Math.sin(t * 0.9) * 0.25;
+        pos.array[i * 3 + 2] = player.position.z + flyBase[i * 3 + 2] + Math.cos(t * 0.4) * 0.8;
+      }
+      pos.needsUpdate = true;
+    }
+    world.cullFar(player.position.x, player.position.z);
+  };
+  let elapsedArt = 0;
+  world.artClock = (dt) => {
+    elapsedArt += dt;
   };
   world.setQuality(quality);
   return world;

@@ -322,6 +322,8 @@ export function openBag(game) {
 
 // ---------- crafting stations ----------
 const stationFilter = {};
+const stationSearch = {};
+const STATION_CAP = 60;
 const STATE_RANK = { ok: 0, missing: 1, energy: 2, level: 3, locked: 4 };
 export function openStation(game, station) {
   const titles = { bench: t('craftTitle'), stove: t('cookTitle'), compost: t('compostTitle') };
@@ -332,7 +334,11 @@ export function openStation(game, station) {
       .sort((a, b) => STATE_RANK[a.state] - STATE_RANK[b.state] || a.order - b.order);
     const readyCount = list.filter((entry) => entry.state === 'ok').length;
     const filter = stationFilter[station] || 'all';
-    const shown = filter === 'ready' ? list.filter((entry) => entry.state === 'ok') : list;
+    const query = (stationSearch[station] || '').trim().toLowerCase();
+    const matched = (filter === 'ready' ? list.filter((entry) => entry.state === 'ok') : list)
+      .filter(({ recipe }) => !query || itemName(Object.keys(recipe.out)[0]).toLowerCase().includes(query)
+        || Object.keys(recipe.in).some((id) => itemName(id).toLowerCase().includes(query)));
+    const shown = matched.slice(0, STATION_CAP);
     const pick = (id) => {
       stationFilter[station] = id;
       refreshPanel();
@@ -343,6 +349,20 @@ export function openStation(game, station) {
           type: 'button', class: `seg-btn${filter === id ? ' on' : ''}`, 'aria-pressed': filter === id ? 'true' : 'false', onclick: () => pick(id), text: label,
         }))),
         station === 'stove' ? h('span', { class: 'meta' }, h('span', { class: 'ico-inline', html: ICONS.bolt }), ` ${t('energy')} ${Math.floor(s.energy)} / ${S.energyCapacity(s)}`) : null),
+      list.length > STATION_CAP ? h('input', {
+        class: 'input recipe-search', type: 'search', placeholder: t('searchRecipes'), 'aria-label': t('searchRecipes'), value: stationSearch[station] || '',
+        oninput: (event) => {
+          stationSearch[station] = event.target.value;
+          const caret = event.target.selectionStart;
+          refreshPanel();
+          const again = document.querySelector('.recipe-search');
+          if (again) {
+            again.focus();
+            again.setSelectionRange(caret, caret);
+          }
+        },
+      }) : null,
+      matched.length > shown.length ? h('p', { class: 'meta', text: t('showingOf', { n: shown.length, total: matched.length }) }) : null,
       shown.length ? null : h('p', { class: 'empty', text: t('noneReady') }),
       h('ul', { class: 'recipes' }, shown.map(({ recipe, state }) => {
         const outId = Object.keys(recipe.out)[0];
@@ -533,9 +553,12 @@ export function openJournal(game, tab = 'goals') {
       const bar = (label, done, total, qty = `${done}/${total}`) => h('li', { class: 'row skill' }, h('span', { class: 'row-name', text: label }),
         h('div', { class: 'bar' }, h('span', { style: { width: `${total ? Math.round((done / total) * 100) : 0}%` } })),
         h('span', { class: 'qty', text: qty }));
-      const islandIds = [...new Set(SMOG_SPOTS.map((p) => p.island))];
+      const islandIds = [...new Set(SMOG_SPOTS.filter((p) => !p.far).map((p) => p.island))];
+      const farSpots = SMOG_SPOTS.map((p, i) => ({ ...p, i })).filter((p) => p.far);
+      const farCleared = farSpots.filter((p) => S.smogCleared(s, p.i)).length;
+      const farAnimals = Object.keys(CRITTERS).filter((id) => CRITTERS[id].far);
       const clarity = Math.round(S.skyClarity(s) * 100);
-      const animalRows = Object.keys(CRITTERS).map((id) => {
+      const animalRows = Object.keys(CRITTERS).filter((id) => !CRITTERS[id].far).map((id) => {
         const status = !S.critterRescued(s, id) ? t('notRescued') : S.critterGiftReady(s, id) ? t('giftReady') : t('rescuedTag');
         return [h('dt', { text: critterName(id) }), h('dd', { text: status })];
       });
@@ -545,7 +568,9 @@ export function openJournal(game, tab = 'goals') {
           islandIds.map((id) => {
             const heap = S.islandSmog(s, id);
             return bar(islandName(id), heap.cleared, heap.total);
-          })),
+          }),
+          bar(t('farSkies'), farCleared, farSpots.length),
+          bar(t('farAnimals'), S.farRescued(s), farAnimals.length)),
         h('h3', { class: 'sub-title', text: t('animals') }),
         h('dl', { class: 'facts' }, animalRows));
     } else {

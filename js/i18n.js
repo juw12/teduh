@@ -295,6 +295,10 @@ const STRINGS = {
     rescuedTag: 'Rescued',
     heapsCleared: 'Smog heaps cleared',
     animalsRescued: 'Animals rescued',
+    searchRecipes: 'Search dishes or ingredients',
+    showingOf: 'Showing {n} of {total}. Search to find more.',
+    farSkies: 'Far Skies smog',
+    farAnimals: 'Far Skies animals',
   },
   id: {
     eyebrow: 'Simulasi desa langit gratis',
@@ -588,6 +592,10 @@ const STRINGS = {
     rescuedTag: 'Diselamatkan',
     heapsCleared: 'Tumpukan asap dibersihkan',
     animalsRescued: 'Hewan diselamatkan',
+    searchRecipes: 'Cari hidangan atau bahan',
+    showingOf: 'Menampilkan {n} dari {total}. Cari untuk melihat lainnya.',
+    farSkies: 'Asap Langit Jauh',
+    farAnimals: 'Hewan Langit Jauh',
   },
 };
 

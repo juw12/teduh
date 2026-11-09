@@ -415,3 +415,8 @@ body:has(.panel[open]) .dock, body:has(.panel[open]) .goal, body:has(.panel[open
   text-transform: uppercase;
   color: var(--muted);
 }
+
+.recipe-search {
+  width: 100%;
+  margin: 0 0 var(--s2);
+}

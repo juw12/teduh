@@ -234,7 +234,38 @@ async () => {
   ok('time away grows crops (offline progress)', summary && summary.ripe === 1, JSON.stringify(summary));
 
   // clean skies: smog heaps, island blooms and rescued animals (v1.4.0)
-  ok('there are 22 goals', D.QUESTS.length === 22, D.QUESTS.length);
+  ok('there are 25 goals', D.QUESTS.length === 25, D.QUESTS.length);
+
+  // far skies (v1.5.0): content counts beat Loftia (50 crops, 28 fish, 115 pets, 736 recipes, 30 NPCs)
+  const cropCount = Object.keys(D.CROPS).length;
+  const fishCount = Object.keys(D.ITEMS).filter((id) => id.startsWith('fish_')).length;
+  const animalCount = Object.keys(D.CRITTERS).length;
+  const npcCount = Object.keys(D.NPCS).length;
+  const farIslands = D.ISLANDS.filter((i) => i.id.startsWith('far'));
+  ok('more crops than Loftia (50)', cropCount > 50, cropCount);
+  ok('more fish than Loftia (28)', fishCount > 28, fishCount);
+  ok('more animals than Loftia pets (115)', animalCount > 115, animalCount);
+  ok('more recipes than Loftia (736)', D.RECIPES.length > 736, D.RECIPES.length);
+  ok('more villagers than Loftia NPCs (30)', npcCount > 30, npcCount);
+  ok('40 far islands with bridges', farIslands.length === 40 && D.BRIDGES.filter((b) => b.to.startsWith('far')).length >= 40, farIslands.length);
+  ok('recipe ids are unique', new Set(D.RECIPES.map((r) => r.id)).size === D.RECIPES.length);
+  const fs = S.newState({});
+  const far0 = farIslands[0];
+  ok('far islands start closed', !S.islandOpen(fs, far0.id) && !S.walkable(fs, far0.x, far0.z));
+  Object.values(fs.projects).forEach((p) => { p.done = true; });
+  ok('the skyway opens the far islands', S.islandOpen(fs, far0.id) && S.walkable(fs, far0.x, far0.z));
+  const farHeap = D.SMOG_SPOTS.findIndex((spot) => spot.island === far0.id);
+  const farClear = S.clearSmog(fs, farHeap, S.mulberry32(9));
+  ok('clearing a far heap rescues its animal', farClear && farClear.critter && S.critterRescued(fs, farClear.critter) && S.farRescued(fs) === 1, JSON.stringify(farClear && farClear.critter));
+  ok('far heaps do not count toward core sky clarity', S.skyClarity(fs) === 0, S.skyClarity(fs));
+  const farFish = S.rollFish('far_meadow', S.mulberry32(4));
+  ok('far ponds have their own fish', !!farFish && !!D.ITEMS[farFish], farFish);
+  S.addItem(fs, 'cookstove', 1);
+  S.place(fs, 'cookstove', 3, 4, 0);
+  const dish = D.RECIPES.find((r) => r.id.startsWith('dish_') && r.level === 1);
+  Object.entries(dish.in).forEach(([id, n]) => S.addItem(fs, id, n));
+  fs.energy = 10;
+  ok('a dish recipe cooks and counts toward the dish goal', !!S.craft(fs, dish.id) && S.dishesCooked(fs) === 1 && S.count(fs, Object.keys(dish.out)[0]) === 1, dish.id);
   const sk = S.newState({});
   const rng = S.mulberry32(3);
   ok('cannot build on an uncleared smog heap', !S.canPlace(sk, D.SMOG_SPOTS[0].x, D.SMOG_SPOTS[0].z));

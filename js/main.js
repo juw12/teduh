@@ -297,7 +297,7 @@ function act(entry) {
       UI.openStation(game, 'bench');
       return;
     case 'pond':
-      game.startFishing('pond');
+      game.startFishing(entry.spot || 'pond');
       return;
     case 'reefpool':
       game.startFishing('reef');
@@ -567,7 +567,7 @@ Object.assign(game, {
   // fishing
   startFishing(spot) {
     const zoneW = S.catchZone(game.s);
-    game.fishing = { spot, pos: 0, dir: 1, speed: spot === 'reef' ? 1.2 : 0.85, zoneW, zoneStart: 0.12 + game.rng() * (0.76 - zoneW), misses: 0 };
+    game.fishing = { spot, pos: 0, dir: 1, speed: spot === 'reef' ? 1.2 : spot.startsWith('far_') ? 1.05 : 0.85, zoneW, zoneStart: 0.12 + game.rng() * (0.76 - zoneW), misses: 0 };
     UI.showFishing(true);
     UI.drawFishing(game.fishing);
     $('#fishBtn').focus();

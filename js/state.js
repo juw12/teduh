@@ -570,10 +570,14 @@ export function islandSmog(s, islandId) {
   return { total: spots.length, cleared: spots.filter((p) => smogCleared(s, p.index)).length };
 }
 // 0 = every heap still smoking, 1 = every heap cleared. The world uses it to lift the haze.
+// Only the home archipelago's heaps drive the haze and the Clean skies goal; far heaps clear their own island.
+const CORE_SMOG = SMOG_SPOTS.map((p, i) => i).filter((i) => !SMOG_SPOTS[i].far);
 export function skyClarity(s) {
-  return SMOG_SPOTS.filter((p, i) => smogCleared(s, i)).length / SMOG_SPOTS.length;
+  return CORE_SMOG.filter((i) => smogCleared(s, i)).length / CORE_SMOG.length;
 }
-export const allSmogCleared = (s) => SMOG_SPOTS.every((p, i) => smogCleared(s, i));
+export const allSmogCleared = (s) => CORE_SMOG.every((i) => smogCleared(s, i));
+export const farRescued = (s) => Object.keys(CRITTERS).filter((id) => CRITTERS[id].far && critterRescued(s, id)).length;
+export const dishesCooked = (s) => Object.keys(s.stats.crafted).filter((id) => id.startsWith('dish_')).length;
 export const critterRescued = (s, id) => Boolean(s.critters && s.critters[id]);
 export function clearSmog(s, index, rng = Math.random) {
   const spot = SMOG_SPOTS[index];
@@ -740,7 +744,10 @@ const questChecks = {
   q_light: (s) => projectDone(s, 'lighthouse'),
   q_smog: (s) => s.stats.cleared >= 1,
   q_rescue: (s) => critterRescued(s, 'hen'),
-  q_clean: (s) => allSmogCleared(s) && Object.keys(CRITTERS).every((id) => critterRescued(s, id)),
+  q_clean: (s) => allSmogCleared(s) && Object.keys(CRITTERS).filter((id) => !CRITTERS[id].far).every((id) => critterRescued(s, id)),
+  q_skyway: (s) => projectDone(s, 'skyway'),
+  q_far: (s) => farRescued(s) >= 10,
+  q_dishes: (s) => dishesCooked(s) >= 5,
 };
 export const currentQuest = (s) => QUESTS[s.quest] || null;
 // Completes every finished goal in order and returns them (rewards already paid).
