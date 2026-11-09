@@ -3,7 +3,7 @@
 import { createWorld } from './world.js';
 import * as S from './state.js';
 import * as D from './data.js';
-import { t, setLang, getLang, itemName, skillName, projectName, questName, phraseText } from './i18n.js';
+import { t, setLang, getLang, itemName, skillName, projectName, questName, phraseText, critterName, islandName } from './i18n.js';
 import * as UI from './ui.js';
 import { audio } from './audio.js';
 import { joinTogether, makeRoomCode, cleanRoomCode, PLAZA } from './net.js';
@@ -126,6 +126,9 @@ function handleEvents(events) {
       changed = true;
     } else if (event.type === 'day') {
       UI.toast(t('newDay', { n: event.day }));
+      if (S.giftsWaiting(game.s).length) {
+        UI.toast(t('giftsWaiting'));
+      }
       changed = true;
     } else if (event.type === 'rainStart') {
       UI.toast(t('rainStart'));
@@ -203,6 +206,18 @@ function describe(entry) {
       return { label: `${t('actTalk')} ${D.NPCS[entry.id].name}`, enabled: true };
     case 'pet':
       return { label: `${t('actPet')} ${s.pet.name}`, enabled: true };
+    case 'smog':
+      if (S.smogCleared(s, entry.index)) {
+        return null;
+      }
+      return { label: t('actClear'), enabled: true, sub: entry.critter ? t('smogStuck', { animal: critterName(entry.critter) }) : t('smogSub') };
+    case 'critter':
+      if (!S.critterRescued(s, entry.id)) {
+        return null;
+      }
+      return S.critterGiftReady(s, entry.id)
+        ? { label: t('actGift'), enabled: true, sub: critterName(entry.id) }
+        : { label: critterName(entry.id), enabled: true, sub: t('giftTomorrow') };
     default:
       return null;
   }
@@ -308,6 +323,41 @@ function act(entry) {
     case 'pet':
       UI.openPet(game);
       return;
+    case 'smog': {
+      const result = S.clearSmog(s, entry.index, game.rng);
+      if (!result) {
+        return;
+      }
+      game.pulse = 0.5;
+      audio.play('chop');
+      UI.toast(Object.entries(result.items).map(([id, n]) => t('got', { n, item: itemName(id) })).join('  '));
+      if (result.critter) {
+        UI.toast(t('rescued', { animal: critterName(result.critter) }), 'good');
+        audio.play('success');
+      }
+      if (result.bloom) {
+        UI.toast(t('bloom', { island: islandName(result.bloom), n: D.SMOG.bloomReward }), 'good');
+        audio.play('success');
+      }
+      if (S.allSmogCleared(s)) {
+        UI.toast(t('skyClear'), 'good');
+      }
+      notifyLevel(result.levelUp);
+      afterChange();
+      return;
+    }
+    case 'critter': {
+      const gift = S.collectCritterGift(s, entry.id);
+      if (gift) {
+        game.pulse = 0.4;
+        audio.play('pick');
+        UI.toast(t('got', { n: gift.n, item: itemName(gift.item) }));
+        afterChange();
+      } else {
+        UI.toast(t('critterHappy', { animal: critterName(entry.id) }));
+      }
+      return;
+    }
     default:
   }
 }
@@ -801,6 +851,9 @@ function findNearest() {
   let best = null;
   let bestScore = Infinity;
   for (const entry of world.interactables) {
+    if (entry.hidden) {
+      continue;
+    }
     const d = Math.hypot(entry.x - s.pos.x, entry.z - s.pos.z) - entry.r;
     if (d > 0) {
       continue;
@@ -834,6 +887,11 @@ function questTarget() {
   }
   if (target === 'npc') {
     return near(world.interactables.filter((e) => e.kind === 'npc'));
+  }
+  if (target === 'smog' || target === 'critter_smog') {
+    const heaps = world.interactables.filter((e) => e.kind === 'smog' && !S.smogCleared(s, e.index) && S.islandOpen(s, e.island));
+    const wanted = target === 'critter_smog' ? heaps.filter((e) => e.critter && !S.critterRescued(s, e.critter)) : heaps;
+    return near(wanted.length ? wanted : heaps);
   }
   const fixture = world.interactables.find((e) => e.id === target || e.kind === target);
   return fixture ? { x: fixture.x, z: fixture.z } : null;
@@ -973,6 +1031,11 @@ function handleTap(x, y) {
         game.placeAt(cell);
       }
     }
+    return;
+  }
+  if (hit.kind === 'thing' && hit.entry.hidden) {
+    game.moveTarget = hit.ground ? { x: hit.ground.x, z: hit.ground.z, stop: 0.2 } : null;
+    game.pendingAct = null;
     return;
   }
   if (hit.kind === 'thing') {

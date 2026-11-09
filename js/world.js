@@ -2,15 +2,16 @@
 // Everything is built from low-poly primitives at start-up, so there are no model downloads.
 
 import * as THREE from '../vendor/three.module.min.js';
-import { ISLANDS, BRIDGES, FIXTURES, NODE_SPOTS, NPCS, ITEMS, CROPS } from './data.js';
+import { ISLANDS, BRIDGES, FIXTURES, NODE_SPOTS, NPCS, ITEMS, CROPS, SMOG_SPOTS, CRITTERS } from './data.js';
 import { makeCharacter, applyLook, animateCharacter } from './character.js';
 import { sanitizeLook } from './look.js';
 import {
   mulberry32, bridgeSegment, unlocked, nodeReady, timeOfDay, daylight, isRaining, projectDone, cropProgress,
-  energyCapacity,
+  energyCapacity, smogCleared, critterRescued, skyClarity,
 } from './state.js';
 
 const materialCache = new Map();
+const HAZE = new THREE.Color('#a49d8c');
 function mat(color, extra = {}) {
   const key = color + JSON.stringify(extra);
   if (!materialCache.has(key)) {
@@ -72,6 +73,121 @@ function makePet() {
   const eyeR = at(mesh(eyeGeo, '#1d1d1b'), 0.07, 0.62, 0.38);
   g.add(body, belly, head, earL, earR, tail, eyeL, eyeR);
   g.userData = { tail, phase: 0 };
+  return g;
+}
+
+// ---------- clean skies: smog heaps, rescued animals and island blooms ----------
+export function makeCritter(type) {
+  const g = new THREE.Group();
+  if (type === 'hen') {
+    const body = at(mesh(new THREE.SphereGeometry(0.22, 10, 8), '#f4f0e6'), 0, 0.3, 0);
+    body.scale.set(1, 0.9, 1.25);
+    const head = at(mesh(new THREE.SphereGeometry(0.13, 10, 8), '#f4f0e6'), 0, 0.53, 0.18);
+    const comb = at(mesh(new THREE.BoxGeometry(0.04, 0.09, 0.12), '#c0583a'), 0, 0.67, 0.17);
+    const beak = at(mesh(new THREE.ConeGeometry(0.04, 0.1, 5), '#d9a21b'), 0, 0.52, 0.33);
+    beak.rotation.x = Math.PI / 2;
+    const tail = at(mesh(new THREE.ConeGeometry(0.1, 0.22, 5), '#e8e2d4'), 0, 0.42, -0.25);
+    tail.rotation.x = -0.9;
+    const legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.16, 5);
+    g.add(body, head, comb, beak, tail, at(mesh(legGeo, '#d9a21b'), -0.07, 0.08, 0), at(mesh(legGeo, '#d9a21b'), 0.07, 0.08, 0));
+    const eyeGeo = new THREE.SphereGeometry(0.022, 6, 6);
+    g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.07, 0.56, 0.28), at(mesh(eyeGeo, '#1d1d1b'), 0.07, 0.56, 0.28));
+  } else if (type === 'goat') {
+    const body = at(mesh(new THREE.BoxGeometry(0.42, 0.34, 0.7), '#ece6d6'), 0, 0.5, 0);
+    const head = at(mesh(new THREE.BoxGeometry(0.24, 0.26, 0.3), '#ece6d6'), 0, 0.72, 0.42);
+    const nose = at(mesh(new THREE.BoxGeometry(0.16, 0.12, 0.08), '#b9a58a'), 0, 0.66, 0.6);
+    const hornGeo = new THREE.ConeGeometry(0.04, 0.2, 5);
+    const hornL = at(mesh(hornGeo, '#8c7a5a'), -0.08, 0.92, 0.36);
+    const hornR = at(mesh(hornGeo, '#8c7a5a'), 0.08, 0.92, 0.36);
+    hornL.rotation.x = -0.5;
+    hornR.rotation.x = -0.5;
+    const beard = at(mesh(new THREE.ConeGeometry(0.04, 0.12, 5), '#d8d0bc'), 0, 0.55, 0.58);
+    beard.rotation.x = Math.PI;
+    const legGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.34, 6);
+    g.add(body, head, nose, hornL, hornR, beard);
+    [[-0.14, -0.24], [0.14, -0.24], [-0.14, 0.24], [0.14, 0.24]].forEach(([x, z]) => g.add(at(mesh(legGeo, '#6b5a48'), x, 0.17, z)));
+    const eyeGeo = new THREE.SphereGeometry(0.025, 6, 6);
+    g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.1, 0.78, 0.57), at(mesh(eyeGeo, '#1d1d1b'), 0.1, 0.78, 0.57));
+  } else {
+    const shell = at(mesh(new THREE.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), '#5f7d3f'), 0, 0.1, 0);
+    shell.scale.y = 0.75;
+    const rim = at(mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.06, 14), '#7f6a45'), 0, 0.1, 0);
+    const moss = at(mesh(new THREE.SphereGeometry(0.12, 8, 6), '#8db36f'), 0.06, 0.32, -0.04);
+    moss.scale.y = 0.5;
+    const head = at(mesh(new THREE.SphereGeometry(0.1, 8, 7), '#9aae72'), 0, 0.14, 0.4);
+    const legGeo = new THREE.SphereGeometry(0.07, 6, 5);
+    g.add(shell, rim, moss, head);
+    [[-0.22, -0.2], [0.22, -0.2], [-0.22, 0.2], [0.22, 0.2]].forEach(([x, z]) => g.add(at(mesh(legGeo, '#9aae72'), x, 0.05, z)));
+    const eyeGeo = new THREE.SphereGeometry(0.018, 6, 6);
+    g.add(at(mesh(eyeGeo, '#1d1d1b'), -0.05, 0.18, 0.48), at(mesh(eyeGeo, '#1d1d1b'), 0.05, 0.18, 0.48));
+  }
+  g.userData.type = type;
+  return g;
+}
+function makeFlower(rng) {
+  const g = new THREE.Group();
+  const colors = ['#e3b021', '#f4f0e6', '#e39a7a', '#c0583a', '#f1d27a'];
+  const h = 0.16 + rng() * 0.16;
+  g.add(at(mesh(new THREE.CylinderGeometry(0.015, 0.015, h, 4), '#4f8a2e'), 0, h / 2, 0));
+  g.add(at(mesh(new THREE.IcosahedronGeometry(0.06 + rng() * 0.03, 0), colors[Math.floor(rng() * colors.length)]), 0, h + 0.03, 0));
+  return g;
+}
+function makeSmogHeap(rng, critter) {
+  const g = new THREE.Group();
+  const heap = new THREE.Group();
+  const junk = ['#5d5a52', '#6b5f50', '#4a4844', '#7a6a58'];
+  for (let i = 0; i < 6; i += 1) {
+    const a = rng() * Math.PI * 2;
+    const d = rng() * 0.5;
+    heap.add(at(mesh(jitter(new THREE.DodecahedronGeometry(0.26 + rng() * 0.2, 0), rng, 0.08, false), junk[i % junk.length]), Math.sin(a) * d, 0.18 + rng() * 0.22, Math.cos(a) * d));
+  }
+  const barrel = at(mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.42, 10), '#8a5a3c'), 0.5, 0.2, -0.2);
+  barrel.rotation.z = 1.2;
+  const pipe = at(mesh(new THREE.TorusGeometry(0.2, 0.05, 6, 12, Math.PI), '#6f6a62'), -0.45, 0.22, 0.3);
+  const stain = at(new THREE.Mesh(new THREE.CircleGeometry(1.15, 20), new THREE.MeshStandardMaterial({ color: '#6e6a5e', roughness: 1, transparent: true, opacity: 0.8 })), 0, 0.025, 0);
+  stain.rotation.x = -Math.PI / 2;
+  stain.receiveShadow = true;
+  heap.add(barrel, pipe, stain);
+  const haze = new THREE.Group();
+  const hazeMat = new THREE.MeshStandardMaterial({ color: '#8d877b', transparent: true, opacity: 0.36, depthWrite: false, roughness: 1, flatShading: true });
+  for (let i = 0; i < 4; i += 1) {
+    const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32 + rng() * 0.2, 0), hazeMat);
+    puff.position.set((rng() - 0.5) * 0.6, 0.85 + i * 0.36, (rng() - 0.5) * 0.6);
+    puff.userData.base = puff.position.y;
+    puff.userData.phase = rng() * Math.PI * 2;
+    haze.add(puff);
+  }
+  heap.add(haze);
+  let peek = null;
+  if (critter) {
+    peek = makeCritter(critter);
+    peek.scale.setScalar(0.85);
+    peek.position.set(0.1, 0.3, 0.6);
+    peek.rotation.y = 0.5;
+    heap.add(peek);
+  }
+  // what is left after cleaning: fresh grass and a few flowers
+  const after = new THREE.Group();
+  const grass = at(mesh(new THREE.CylinderGeometry(0.9, 0.95, 0.04, 16), '#9cc47a'), 0, 0.02, 0);
+  grass.castShadow = false;
+  after.add(grass);
+  for (let i = 0; i < 7; i += 1) {
+    const a = rng() * Math.PI * 2;
+    const d = 0.2 + rng() * 0.6;
+    after.add(at(makeFlower(rng), Math.sin(a) * d, 0.03, Math.cos(a) * d));
+  }
+  after.visible = false;
+  g.add(heap, after);
+  g.userData = { heap, after, haze, peek, cleared: false };
+  return g;
+}
+function makeBloom(island, rng) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 28; i += 1) {
+    const a = rng() * Math.PI * 2;
+    const d = island.r * (0.55 + rng() * 0.35);
+    g.add(at(makeFlower(rng), island.x + Math.sin(a) * d, 0, island.z + Math.cos(a) * d));
+  }
   return g;
 }
 
@@ -689,6 +805,53 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     register({ key: `n:${index}`, kind: 'node', nodeType: type, index, x, z, r: 1.35 }, object);
   });
 
+  // smog heaps (clean skies)
+  const smogRng = mulberry32(11);
+  world.smogMeshes = [];
+  world.smogEntries = [];
+  SMOG_SPOTS.forEach((spot, index) => {
+    const object = at(makeSmogHeap(smogRng, spot.critter), spot.x, 0, spot.z);
+    object.rotation.y = smogRng() * Math.PI * 2;
+    scene.add(object);
+    world.smogMeshes[index] = object;
+    world.smogEntries[index] = register({ key: `s:${index}`, kind: 'smog', index, critter: spot.critter || null, island: spot.island, x: spot.x, z: spot.z, r: 1.45 }, object);
+  });
+  // rescued animals live on Home Isle
+  world.critterMeshes = {};
+  world.critterEntries = {};
+  Object.entries(CRITTERS).forEach(([id, critter], i) => {
+    const object = at(makeCritter(id), critter.home.x, 0, critter.home.z);
+    object.visible = false;
+    object.userData.phase = i * 2.1;
+    scene.add(object);
+    world.critterMeshes[id] = object;
+    world.critterEntries[id] = register({ key: `c:${id}`, kind: 'critter', id, x: critter.home.x, z: critter.home.z, r: 1.15, hidden: true }, object);
+  });
+  world.bloomGroups = {};
+  world.syncClean = (s) => {
+    SMOG_SPOTS.forEach((spot, index) => {
+      const object = world.smogMeshes[index];
+      const cleared = smogCleared(s, index);
+      world.smogEntries[index].hidden = cleared;
+      if (object.userData.cleared !== cleared) {
+        object.userData.cleared = cleared;
+        object.userData.heap.visible = !cleared;
+        object.userData.after.visible = cleared;
+      }
+    });
+    Object.keys(CRITTERS).forEach((id) => {
+      const rescued = critterRescued(s, id);
+      world.critterMeshes[id].visible = rescued;
+      world.critterEntries[id].hidden = !rescued;
+    });
+    ISLANDS.forEach((island) => {
+      if (s.blooms && s.blooms[island.id] && !world.bloomGroups[island.id]) {
+        world.bloomGroups[island.id] = makeBloom(island, mulberry32(island.x * 31 + island.z * 7 + 5));
+        scene.add(world.bloomGroups[island.id]);
+      }
+    });
+  };
+
   // villagers
   Object.entries(NPCS).forEach(([id, npc]) => {
     const person = at(makePerson(npc.look || npc.color), npc.x, 0, npc.z);
@@ -966,6 +1129,11 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     if (raining) {
       tmpColor.lerp(new THREE.Color('#8a979f'), 0.45 * light);
     }
+    // smog haze: a warm grey veil that lifts as heaps are cleared
+    const clarity = skyClarity(s);
+    tmpColor.lerp(HAZE, (1 - clarity) * 0.16 * (0.35 + 0.65 * light));
+    scene.fog.near = 38 + 7 * clarity;
+    scene.fog.far = 100 + 20 * clarity;
     sky.copy(tmpColor);
     scene.fog.color.copy(tmpColor);
     const sunAngle = (tod - 0.25) * Math.PI * 2;
@@ -1004,6 +1172,38 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
     pet.userData.tail.rotation.z = Math.sin(pet.userData.phase * 0.7) * 0.4;
     petEntry.x = pet.position.x;
     petEntry.z = pet.position.z;
+
+    // smog haze drifts; rescued animals potter around their favourite spot
+    world.syncClean(s);
+    world.smogMeshes.forEach((object) => {
+      if (object.userData.cleared || world.reducedMotion) {
+        return;
+      }
+      object.userData.haze.children.forEach((puff) => {
+        puff.position.y = puff.userData.base + Math.sin(elapsed * 0.8 + puff.userData.phase) * 0.12;
+        puff.rotation.y += dt * 0.3;
+      });
+      if (object.userData.peek) {
+        object.userData.peek.rotation.y = 0.5 + Math.sin(elapsed * 1.6) * 0.35;
+      }
+    });
+    Object.entries(world.critterMeshes).forEach(([id, object]) => {
+      if (!object.visible) {
+        return;
+      }
+      const home = CRITTERS[id].home;
+      const ph = object.userData.phase + (world.reducedMotion ? 0 : elapsed * 0.35);
+      const nx = home.x + Math.sin(ph) * 0.8;
+      const nz = home.z + Math.cos(ph * 0.8) * 0.6;
+      const dx = nx - object.position.x;
+      const dz = nz - object.position.z;
+      if (Math.hypot(dx, dz) > 0.0005) {
+        object.rotation.y = Math.atan2(dx, dz);
+      }
+      object.position.set(nx, world.reducedMotion ? 0 : Math.abs(Math.sin(elapsed * 4 + object.userData.phase)) * 0.04, nz);
+      world.critterEntries[id].x = nx;
+      world.critterEntries[id].z = nz;
+    });
 
     // villagers idle
     Object.values(world.npcMeshes).forEach((npc) => animatePerson(npc, false, dt));

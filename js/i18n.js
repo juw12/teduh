@@ -1,6 +1,6 @@
 // Interface text in English and Bahasa Indonesia. Item, villager and goal names live in data.js.
 
-import { ITEMS, ISLANDS, PROJECTS, NPCS, QUESTS, BUFFS, PHRASES } from './data.js';
+import { ITEMS, ISLANDS, PROJECTS, NPCS, QUESTS, BUFFS, PHRASES, CRITTERS } from './data.js';
 
 const STRINGS = {
   en: {
@@ -277,6 +277,24 @@ const STRINGS = {
     opt_skirt: 'Skirt',
     opt_sarong: 'Sarong',
     opt_longtop: 'Long sleeve',
+    actClear: 'Clear smog',
+    smogSub: 'Recycle the junk into materials',
+    smogStuck: 'Something is moving inside. A {animal}?',
+    actGift: 'Collect gift',
+    giftTomorrow: 'Happy here. A new gift comes tomorrow.',
+    rescued: 'You rescued a {animal}. It will live on Home Isle.',
+    bloom: '{island} is clean and blooming. +{n} coins',
+    skyClear: 'Every heap is gone. The sky is clear again.',
+    critterHappy: 'The {animal} looks happy to see you.',
+    giftsWaiting: 'Your animals left gifts on Home Isle.',
+    cleanTab: 'Clean skies',
+    skyClarity: 'Sky clarity',
+    animals: 'Animals',
+    notRescued: 'Still trapped in smog',
+    giftReady: 'Gift waiting',
+    rescuedTag: 'Rescued',
+    heapsCleared: 'Smog heaps cleared',
+    animalsRescued: 'Animals rescued',
   },
   id: {
     eyebrow: 'Simulasi desa langit gratis',
@@ -552,6 +570,24 @@ const STRINGS = {
     opt_skirt: 'Rok',
     opt_sarong: 'Sarung',
     opt_longtop: 'Lengan panjang',
+    actClear: 'Bersihkan asap',
+    smogSub: 'Daur ulang sampahnya jadi bahan',
+    smogStuck: 'Ada yang bergerak di dalam. Seekor {animal}?',
+    actGift: 'Ambil hadiah',
+    giftTomorrow: 'Senang di sini. Hadiah baru datang besok.',
+    rescued: 'Kamu menyelamatkan {animal}. Ia akan tinggal di Pulau Rumah.',
+    bloom: '{island} bersih dan berbunga. +{n} koin',
+    skyClear: 'Semua tumpukan hilang. Langit cerah lagi.',
+    critterHappy: '{animal} tampak senang melihatmu.',
+    giftsWaiting: 'Hewanmu meninggalkan hadiah di Pulau Rumah.',
+    cleanTab: 'Langit bersih',
+    skyClarity: 'Kejernihan langit',
+    animals: 'Hewan',
+    notRescued: 'Masih terjebak asap',
+    giftReady: 'Ada hadiah',
+    rescuedTag: 'Diselamatkan',
+    heapsCleared: 'Tumpukan asap dibersihkan',
+    animalsRescued: 'Hewan diselamatkan',
   },
 };
 
@@ -585,6 +621,7 @@ export const projectBody = (id) => {
   const p = PROJECTS.find((x) => x.id === id);
   return p ? (lang === 'id' ? p.idBody : p.enBody) : '';
 };
+export const critterName = (id) => (CRITTERS[id] ? (lang === 'id' ? CRITTERS[id].idn : CRITTERS[id].en) : id);
 export const npcBlurb = (id) => (lang === 'id' ? NPCS[id].idn : NPCS[id].en);
 export const questName = (q) => (lang === 'id' ? q.idn : q.en);
 export const questHint = (q) => (lang === 'id' ? q.hintId : q.hint);

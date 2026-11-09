@@ -4,7 +4,7 @@
 import {
   VERSION, DAY_LENGTH, START_TIME_OF_DAY, ITEMS, CROPS, SKILLS, MAX_LEVEL, xpForNext, RECIPES, BUFFS, ENERGY,
   NODES, NODE_SPOTS, FISH_SPOTS, ISLANDS, BRIDGES, PROJECTS, NPCS, FRIEND_GIFT_AT, START_PLACED, START_INVENTORY,
-  START_CREDITS, QUESTS, BUILD_KEEP_CLEAR, BUILD_ISLAND, FIXTURES,
+  START_CREDITS, QUESTS, BUILD_KEEP_CLEAR, BUILD_ISLAND, FIXTURES, SMOG, SMOG_SPOTS, CRITTERS,
 } from './data.js';
 import { sanitizeLook } from './look.js';
 
@@ -52,10 +52,13 @@ export function newState({ name = 'Traveller', color = '#3f7d4e', lang = 'en', l
     friends: Object.fromEntries(Object.keys(NPCS).map((id) => [id, { points: 0, gift: false, doneDay: 0 }])),
     quest: 0,
     pet: { name: 'Kopi', happy: 60, lastPat: -999, lastFind: 0 },
+    smog: {},
+    critters: {},
+    blooms: {},
     pos: { x: 0, z: 2.5, f: 0 },
     stats: {
       chopped: 0, gathered: {}, planted: 0, watered: 0, harvested: 0, crafted: {}, placed: {}, sold: 0,
-      orders: 0, contributed: 0, fished: {}, cooked: 0, visited: { home: true }, decor: 0,
+      orders: 0, contributed: 0, fished: {}, cooked: 0, visited: { home: true }, decor: 0, cleared: 0, rescued: 0,
     },
     savedAt: Date.now(),
     created: Date.now(),
@@ -244,6 +247,13 @@ export function canPlace(s, x, z, ignoreUid = null) {
     return false;
   }
   if (NODE_SPOTS.some((n) => Math.hypot(x - n[1], z - n[2]) < 1.1)) {
+    return false;
+  }
+  // smog heaps (until cleared) and the animals' favourite spots stay free
+  if (SMOG_SPOTS.some((p, i) => !smogCleared(s, i) && Math.hypot(x - p.x, z - p.z) < SMOG.radius)) {
+    return false;
+  }
+  if (Object.values(CRITTERS).some((c) => Math.hypot(x - c.home.x, z - c.home.z) < SMOG.radius)) {
     return false;
   }
   const other = placedAt(s, x, z);
@@ -553,6 +563,64 @@ export function feedPet(s) {
   return fish;
 }
 
+// ---------- clean skies: smog heaps, island blooms and rescued animals ----------
+export const smogCleared = (s, index) => Boolean(s.smog && s.smog[index]);
+export function islandSmog(s, islandId) {
+  const spots = SMOG_SPOTS.map((p, i) => ({ ...p, index: i })).filter((p) => p.island === islandId);
+  return { total: spots.length, cleared: spots.filter((p) => smogCleared(s, p.index)).length };
+}
+// 0 = every heap still smoking, 1 = every heap cleared. The world uses it to lift the haze.
+export function skyClarity(s) {
+  return SMOG_SPOTS.filter((p, i) => smogCleared(s, i)).length / SMOG_SPOTS.length;
+}
+export const allSmogCleared = (s) => SMOG_SPOTS.every((p, i) => smogCleared(s, i));
+export const critterRescued = (s, id) => Boolean(s.critters && s.critters[id]);
+export function clearSmog(s, index, rng = Math.random) {
+  const spot = SMOG_SPOTS[index];
+  if (!spot || smogCleared(s, index) || !islandOpen(s, spot.island)) {
+    return null;
+  }
+  const items = {};
+  SMOG.yields.forEach(([id, min, max]) => {
+    items[id] = randInt(rng, min, max);
+  });
+  if (rng() < SMOG.wireChance) {
+    items.wire = 1;
+  }
+  Object.entries(items).forEach(([id, n]) => addItem(s, id, n));
+  s.smog[index] = true;
+  s.stats.cleared += 1;
+  const levelUp = addXp(s, SMOG.skill, SMOG.xp) ? SMOG.skill : false;
+  let critter = null;
+  if (spot.critter && !critterRescued(s, spot.critter)) {
+    critter = spot.critter;
+    // the first gift waits for the next morning
+    s.critters[critter] = { giftDay: dayNumber(s) };
+    s.stats.rescued += 1;
+  }
+  let bloom = null;
+  const island = islandSmog(s, spot.island);
+  if (island.cleared === island.total && !s.blooms[spot.island]) {
+    s.blooms[spot.island] = true;
+    s.credits += SMOG.bloomReward;
+    bloom = spot.island;
+  }
+  return { items, critter, bloom, levelUp };
+}
+export function critterGiftReady(s, id) {
+  return critterRescued(s, id) && s.critters[id].giftDay < dayNumber(s);
+}
+export function collectCritterGift(s, id) {
+  if (!critterGiftReady(s, id)) {
+    return null;
+  }
+  const gift = CRITTERS[id].gift;
+  addItem(s, gift.item, gift.n);
+  s.critters[id].giftDay = dayNumber(s);
+  return { ...gift };
+}
+export const giftsWaiting = (s) => Object.keys(CRITTERS).filter((id) => critterGiftReady(s, id));
+
 // ---------- the clock: everything that changes with time ----------
 // Returns a list of events for the UI ({type, ...}).
 export function tick(s, dt, rng = Math.random) {
@@ -670,6 +738,9 @@ const questChecks = {
   q_tower: (s) => projectDone(s, 'tower'),
   q_ray: (s) => (s.stats.fished.fish_ray || 0) >= 1,
   q_light: (s) => projectDone(s, 'lighthouse'),
+  q_smog: (s) => s.stats.cleared >= 1,
+  q_rescue: (s) => critterRescued(s, 'hen'),
+  q_clean: (s) => allSmogCleared(s) && Object.keys(CRITTERS).every((id) => critterRescued(s, id)),
 };
 export const currentQuest = (s) => QUESTS[s.quest] || null;
 // Completes every finished goal in order and returns them (rewards already paid).
@@ -704,12 +775,49 @@ export function deserialize(text) {
   merged.projects = { ...base.projects, ...(data.projects || {}) };
   merged.friends = { ...base.friends, ...(data.friends || {}) };
   merged.pet = { ...base.pet, ...(data.pet || {}) };
+  merged.smog = cleanFlags(data.smog, SMOG_SPOTS.length);
+  merged.blooms = Object.fromEntries(Object.keys(data.blooms || {}).filter((id) => ISLANDS.some((i) => i.id === id)).map((id) => [id, true]));
+  merged.critters = Object.fromEntries(Object.entries(data.critters || {})
+    .filter(([id, c]) => CRITTERS[id] && c && Number.isFinite(c.giftDay))
+    .map(([id, c]) => [id, { giftDay: c.giftDay }]));
+  // 1.4.0 added two goals after goal 12; players already past it keep their place
+  if (versionBefore(data.v, '1.4.0') && merged.quest > 12) {
+    merged.quest = Math.min(QUESTS.length, merged.quest + 2);
+  }
   merged.look = base.look;
   merged.inv = Object.fromEntries(Object.entries(data.inv).filter(([id, n]) => ITEMS[id] && Number.isFinite(n) && n > 0));
   merged.placed = (Array.isArray(data.placed) ? data.placed : []).filter((p) => ITEMS[p.type]?.kind === 'place');
   merged.nextUid = Math.max(merged.nextUid || 1, ...merged.placed.map((p) => p.uid + 1));
+  // a heap that would appear under something an older save already built is treated as long gone
+  if (versionBefore(data.v, '1.4.0')) {
+    SMOG_SPOTS.forEach((spot, i) => {
+      if (merged.placed.some((p) => Math.hypot(p.x - spot.x, p.z - spot.z) < SMOG.radius + 0.6)) {
+        merged.smog[i] = true;
+      }
+    });
+  }
   merged.v = VERSION;
   return merged;
+}
+function cleanFlags(value, size) {
+  const out = {};
+  Object.keys(value || {}).forEach((key) => {
+    const index = Number(key);
+    if (Number.isInteger(index) && index >= 0 && index < size && value[key]) {
+      out[index] = true;
+    }
+  });
+  return out;
+}
+export function versionBefore(version, target) {
+  const a = String(version || '0').split('.').map((n) => Number(n) || 0);
+  const b = target.split('.').map((n) => Number(n) || 0);
+  for (let i = 0; i < 3; i += 1) {
+    if ((a[i] || 0) !== (b[i] || 0)) {
+      return (a[i] || 0) < (b[i] || 0);
+    }
+  }
+  return false;
 }
 export function toCode(s) {
   const bytes = new TextEncoder().encode(serialize(s));

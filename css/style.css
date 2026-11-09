@@ -407,3 +407,11 @@ body:has(.panel[open]) .dock, body:has(.panel[open]) .goal, body:has(.panel[open
 }
 #energyText { white-space: nowrap; }
 @media (max-width: 640px) { .energy .meter { width: 44px; min-width: 44px; } }
+
+.sub-title {
+  margin: var(--s4) 0 var(--s2);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

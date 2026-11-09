@@ -233,6 +233,49 @@ async () => {
   const summary = S.applyOffline(off, Date.now(), S.mulberry32(5));
   ok('time away grows crops (offline progress)', summary && summary.ripe === 1, JSON.stringify(summary));
 
+  // clean skies: smog heaps, island blooms and rescued animals (v1.4.0)
+  ok('there are 22 goals', D.QUESTS.length === 22, D.QUESTS.length);
+  const sk = S.newState({});
+  const rng = S.mulberry32(3);
+  ok('cannot build on an uncleared smog heap', !S.canPlace(sk, D.SMOG_SPOTS[0].x, D.SMOG_SPOTS[0].z));
+  const clarity0 = S.skyClarity(sk);
+  const scrapBefore = S.count(sk, 'scrap');
+  const first = S.clearSmog(sk, 0, rng);
+  ok('clearing a heap recycles it into materials', first && S.count(sk, 'scrap') >= scrapBefore + 2 && S.count(sk, 'stone') >= 1, JSON.stringify(first && first.items));
+  ok('a cleared heap cannot be cleared again', S.clearSmog(sk, 0, rng) === null);
+  ok('sky clarity rises as heaps are cleared', S.skyClarity(sk) > clarity0, S.skyClarity(sk));
+  const henHeap = S.clearSmog(sk, 1, rng);
+  ok('the hen heap rescues the hen', henHeap && henHeap.critter === 'hen' && S.critterRescued(sk, 'hen'));
+  ok('no gift on the rescue day', !S.critterGiftReady(sk, 'hen'));
+  sk.clock += D.DAY_LENGTH;
+  const seeds0 = S.count(sk, 'seed_tomato');
+  ok('a gift is ready the next day', S.critterGiftReady(sk, 'hen') && S.giftsWaiting(sk).includes('hen'));
+  S.collectCritterGift(sk, 'hen');
+  ok('the hen gift gives 2 tomato seeds', S.count(sk, 'seed_tomato') === seeds0 + 2, S.count(sk, 'seed_tomato'));
+  ok('only one gift per day', !S.critterGiftReady(sk, 'hen'));
+  const coins0 = sk.credits;
+  const last = S.clearSmog(sk, 2, rng);
+  ok('clearing every Home heap blooms the island and pays 40', last && last.bloom === 'home' && sk.credits === coins0 + 40 && sk.blooms.home, sk.credits - coins0);
+  ok('locked islands keep their smog', S.clearSmog(sk, 3, rng) === null || S.islandOpen(sk, D.SMOG_SPOTS[3].island));
+  const oldSave = JSON.parse(S.serialize(S.newState({})));
+  oldSave.v = '1.3.0';
+  oldSave.quest = 14;
+  ok('pre-1.4 saves keep their goal after the two new goals', S.deserialize(JSON.stringify(oldSave)).quest === 16);
+  const earlySave = JSON.parse(S.serialize(S.newState({})));
+  earlySave.v = '1.3.0';
+  earlySave.quest = 5;
+  ok('early-goal saves are not shifted', S.deserialize(JSON.stringify(earlySave)).quest === 5);
+  const builtSave = JSON.parse(S.serialize(S.newState({})));
+  builtSave.v = '1.3.0';
+  builtSave.placed.push({ uid: 99, type: 'path', x: D.SMOG_SPOTS[2].x, z: D.SMOG_SPOTS[2].z, rot: 0 });
+  const builtLoaded = S.deserialize(JSON.stringify(builtSave));
+  ok('old builds never get buried under a new heap', S.smogCleared(builtLoaded, 2) && !S.smogCleared(builtLoaded, 0));
+  const roundTrip = S.deserialize(S.serialize(sk));
+  ok('cleared heaps, blooms and animals survive a save', roundTrip.smog[0] && roundTrip.blooms.home && S.critterRescued(roundTrip, 'hen'));
+  T.teleport(D.SMOG_SPOTS[0].x, D.SMOG_SPOTS[0].z + 1.2);
+  T.act('s:0');
+  ok('the Clear smog action works in the world', S.smogCleared(s, 0));
+
   // i18n coverage
   const STR = T.t && window.teduh;
   const items = Object.entries(D.ITEMS).filter(([, it]) => !it.en || !it.id).map(([k]) => k);

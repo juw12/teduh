@@ -1,10 +1,10 @@
 // Interface: HUD, dock, panels, title screen, fishing and build bars. DOM is built with h() and textContent,
 // so names typed by other players can never inject markup.
 
-import { ITEMS, RECIPES, PROJECTS, NPCS, SKILLS, QUESTS, PHRASES, MAX_LEVEL, xpForNext, AVATAR_COLORS, FRIEND_GIFT_AT, VERSION } from './data.js';
+import { ITEMS, RECIPES, PROJECTS, NPCS, SKILLS, QUESTS, PHRASES, MAX_LEVEL, xpForNext, AVATAR_COLORS, FRIEND_GIFT_AT, VERSION, CRITTERS, SMOG_SPOTS } from './data.js';
 import * as S from './state.js';
 import {
-  t, itemName, skillName, projectName, projectBody, npcBlurb, questName, questHint, buffText, phraseText, getLang, islandName,
+  t, itemName, skillName, projectName, projectBody, npcBlurb, questName, questHint, buffText, phraseText, getLang, islandName, critterName,
 } from './i18n.js';
 import { itemGlyph, itemTones } from './icons.js';
 
@@ -30,7 +30,7 @@ export function h(tag, attrs = {}, ...children) {
       el.setAttribute(key, value === true ? '' : value);
     }
   });
-  children.flat().forEach((child) => {
+  children.flat(Infinity).forEach((child) => {
     if (child === null || child === undefined || child === false) {
       return;
     }
@@ -529,6 +529,25 @@ export function openJournal(game, tab = 'goals') {
           h('div', { class: 'bar' }, h('span', { style: { width: `${pct}%` } })),
           h('span', { class: 'qty', text: `${t('level')} ${st.level}` }));
       }));
+    } else if (current === 'clean') {
+      const bar = (label, done, total, qty = `${done}/${total}`) => h('li', { class: 'row skill' }, h('span', { class: 'row-name', text: label }),
+        h('div', { class: 'bar' }, h('span', { style: { width: `${total ? Math.round((done / total) * 100) : 0}%` } })),
+        h('span', { class: 'qty', text: qty }));
+      const islandIds = [...new Set(SMOG_SPOTS.map((p) => p.island))];
+      const clarity = Math.round(S.skyClarity(s) * 100);
+      const animalRows = Object.keys(CRITTERS).map((id) => {
+        const status = !S.critterRescued(s, id) ? t('notRescued') : S.critterGiftReady(s, id) ? t('giftReady') : t('rescuedTag');
+        return [h('dt', { text: critterName(id) }), h('dd', { text: status })];
+      });
+      body = h('div', {},
+        h('ul', { class: 'rows' },
+          bar(t('skyClarity'), clarity, 100, `${clarity}%`),
+          islandIds.map((id) => {
+            const heap = S.islandSmog(s, id);
+            return bar(islandName(id), heap.cleared, heap.total);
+          })),
+        h('h3', { class: 'sub-title', text: t('animals') }),
+        h('dl', { class: 'facts' }, animalRows));
     } else {
       const rows = [
         [t('day'), S.dayNumber(s)],
@@ -539,10 +558,12 @@ export function openJournal(game, tab = 'goals') {
         [itemName('planter'), S.placedOf(s, 'planter').length],
         [t('boardTitle'), `${PROJECTS.filter((p) => S.projectDone(s, p.id)).length}/${PROJECTS.length}`],
         [s.pet.name, `${s.pet.happy}/100`],
+        [t('heapsCleared'), `${SMOG_SPOTS.filter((p, i) => S.smogCleared(s, i)).length}/${SMOG_SPOTS.length}`],
+        [t('animalsRescued'), `${Object.keys(CRITTERS).filter((id) => S.critterRescued(s, id)).length}/${Object.keys(CRITTERS).length}`],
       ];
       body = h('dl', { class: 'facts' }, rows.map(([k, v]) => [h('dt', { text: k }), h('dd', { text: String(v) })]));
     }
-    return h('div', {}, tabs([['goals', t('goals')], ['skills', t('skills')], ['island', t('stats')]], current, pick), body);
+    return h('div', {}, tabs([['goals', t('goals')], ['skills', t('skills')], ['clean', t('cleanTab')], ['island', t('stats')]], current, pick), body);
   }, { size: 'lg' });
 }
 

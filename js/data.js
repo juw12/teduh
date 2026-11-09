@@ -1,7 +1,7 @@
 // Teduh game content. Everything the rules (state.js) and the world (world.js) need lives here,
 // so balancing the game means editing numbers in one file.
 
-export const VERSION = '1.3.0';
+export const VERSION = '1.4.0';
 export const DAY_LENGTH = 600; // seconds of play per in-game day (10 minutes)
 export const START_TIME_OF_DAY = 0.3; // a new save starts in the early morning
 
@@ -252,6 +252,34 @@ export const BUILD_KEEP_CLEAR = [
   { x: 0, z: -12, r: 2.2 }, { x: 11.6, z: -4.6, r: 2.4 },
 ];
 
+// Clean skies: old smog heaps left on the islands. Clearing one recycles it into materials (nothing is
+// wasted), lifts the haze a little and, when an island is fully clean, makes it bloom.
+export const SMOG = {
+  yields: [['scrap', 2, 3], ['stone', 1, 2], ['fiber', 1, 2]],
+  wireChance: 0.35,
+  skill: 'engineer',
+  xp: 8,
+  bloomReward: 40,
+  radius: 1.3, // nothing can be built this close to a heap or an animal's home
+};
+export const SMOG_SPOTS = [
+  { x: 5.5, z: 1.0, island: 'home' },
+  { x: -5.0, z: -5.6, island: 'home', critter: 'hen' },
+  { x: 3.2, z: 9.4, island: 'home' },
+  { x: 2.4, z: -31.2, island: 'market' },
+  { x: 29.2, z: -13.0, island: 'grove', critter: 'goat' },
+  { x: 33.0, z: -6.0, island: 'grove' },
+  { x: -33.2, z: -19.6, island: 'reef', critter: 'turtle' },
+  { x: -21.4, z: -23.6, island: 'reef' },
+];
+
+// Animals trapped in smog heaps. Once rescued they live on Home Isle and leave a gift every morning.
+export const CRITTERS = {
+  hen: { en: 'Sky hen', idn: 'Ayam langit', home: { x: -5.0, z: 8.6 }, gift: { item: 'seed_tomato', n: 2 } },
+  goat: { en: 'Cloud goat', idn: 'Kambing awan', home: { x: 8.4, z: -0.6 }, gift: { item: 'fiber', n: 4 } },
+  turtle: { en: 'Moss turtle', idn: 'Kura-kura lumut', home: { x: -1.8, z: 10.0 }, gift: { item: 'compost', n: 2 } },
+};
+
 export const START_INVENTORY = { seed_basil: 4, wood: 2 };
 export const START_CREDITS = 30;
 
@@ -283,6 +311,10 @@ export const QUESTS = [
     hint: 'Talk to Sari, Bayu or Lin. New orders arrive every morning.', hintId: 'Bicara dengan Sari, Bayu atau Lin. Pesanan baru datang tiap pagi.' },
   { id: 'q_project', target: 'board', reward: { credits: 15 }, en: 'Give materials to a community project', idn: 'Sumbang bahan untuk proyek warga',
     hint: 'The board on Market Isle lists what each project still needs.', hintId: 'Papan di Pulau Pasar menunjukkan kebutuhan tiap proyek.' },
+  { id: 'q_smog', target: 'smog', reward: { credits: 15 }, en: 'Clear a smog heap', idn: 'Bersihkan tumpukan asap',
+    hint: 'Grey heaps still smoke on every island. Clearing one recycles it into scrap, stone and fiber.', hintId: 'Tumpukan abu-abu masih berasap di tiap pulau. Membersihkannya mendaur ulang jadi besi, batu dan serat.' },
+  { id: 'q_rescue', target: 'critter_smog', reward: { credits: 20 }, en: 'Rescue the sky hen from the smog', idn: 'Selamatkan ayam langit dari asap',
+    hint: 'Something is clucking inside the heap by the workbench. Once free, she leaves seeds every morning.', hintId: 'Ada yang berkotek di tumpukan dekat meja kerja. Setelah bebas, ia meninggalkan benih tiap pagi.' },
   { id: 'q_fish', target: 'pond', reward: { credits: 15 }, en: 'Catch a fish in your pond', idn: 'Tangkap ikan di kolammu',
     hint: 'Stop the marker inside the green zone.', hintId: 'Hentikan penanda di dalam zona hijau.' },
   { id: 'q_cook', target: 'workbench', reward: { credits: 25 }, en: 'Build a solar cookstove and cook a meal', idn: 'Buat kompor surya dan masak',
@@ -297,6 +329,8 @@ export const QUESTS = [
     hint: 'Glass rays only live in the Reef Isle pool.', hintId: 'Pari kaca hanya hidup di kolam Pulau Karang.' },
   { id: 'q_light', target: 'lighthouse', reward: { credits: 100 }, en: 'Light the lighthouse', idn: 'Nyalakan mercusuar',
     hint: 'The last project. It needs everything you have learned.', hintId: 'Proyek terakhir. Butuh semua yang sudah kamu pelajari.' },
+  { id: 'q_clean', target: 'smog', reward: { credits: 120 }, en: 'Clear every smog heap and free all three animals', idn: 'Bersihkan semua tumpukan asap dan bebaskan tiga hewan',
+    hint: 'Eight heaps across four islands. The sky turns clear blue when the last one is gone.', hintId: 'Delapan tumpukan di empat pulau. Langit jadi biru jernih saat yang terakhir hilang.' },
 ];
 
 // Preset phrases for playing together (no free text chat, so nobody can send anything unkind).

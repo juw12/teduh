@@ -54,7 +54,7 @@
 ## About
 
 Teduh (Indonesian for "sheltered, calm") is a cozy life sim set on floating islands above the clouds. You start with
-two planters, a workbench and a small house, and a guided list of 19 goals walks you from your first chopped tree to
+two planters, a workbench and a small house, and a guided list of 22 goals walks you from your first chopped tree to
 lighting the village lighthouse. Everything runs on clean energy you build yourself.
 
 It is made as a free answer to [Loftia](https://loftia.gg/), the solarpunk life-sim MMO that entered Early Access on
@@ -71,13 +71,15 @@ idea that matter for a calm session and removes the friction reviewers complaine
 | Install | None; optional "install as app" (about 1 MB plus a 0.7 MB 3D engine) | Store download |
 | Offline | Yes, after the first visit | Always online |
 | Servers and lag | No game server; friends connect browser to browser | Reviews report server lag and frequent loading screens |
-| First 10 minutes | 19 guided goals with a pointer in the world | Reviews describe a slow early economy |
+| First 10 minutes | 22 guided goals with a pointer in the world | Reviews describe a slow early economy |
 | Account | None | Store and game account |
 | Languages | English and Bahasa Indonesia | See store page |
+| Pollution cleanup | 8 smog heaps on 4 islands; each one recycles into materials and clears the sky haze; a clean island blooms | Core loop: recycling and renewable energy clean a polluted world |
+| Animal rescue | 3 animals (hen, goat, turtle) trapped in smog; they move to Home Isle and leave a gift every day | Rescue and companion animals, a much larger roster |
 
 Loftia facts come from its [store and launch pages](https://loftia.gg/early-access/) and early reviews
 ([Game8](https://game8.co/reviews/loftia/loftia-review-early-access), [Massively Overpowered](https://massivelyop.com/2026/11/05/loftias-early-access-earns-some-respectable-reviews-and-player-counts-as-the-devs-list-known-issues/)).
-What Loftia does better: a large shared world, many more activities, professional art and pets you can customise. Its characters are stylised; Teduh's are built to look like real people, with more body, face and clothing choices than a colour swap.
+What Loftia still does better: a large shared world, many more activities and animals, deeper pollution and housing systems, professional art and pets you can customise. Since 1.4.0 Teduh has its own small version of the two ideas that define Loftia (cleaning up pollution and rescuing animals), so the honest gap is now scale, not kind. Its characters are stylised; Teduh's are built to look like real people, with more body, face and clothing choices than a colour swap.
 
 ## Features
 
@@ -95,6 +97,8 @@ What Loftia does better: a large shared world, many more activities, professiona
 | Building | Place, rotate, move and pick up 14 kinds of furniture and machines on your island grid |
 | Villagers | Sari, Bayu and Lin post a new order every morning; friendship unlocks a gift from each |
 | Community projects | Sky bridge, wind tower, reef dock, lighthouse |
+| Clean skies | 8 smog heaps to clear across the islands; each recycles into scrap, stone, fiber and sometimes wire; the sky haze lifts as you go and every fully cleaned island blooms with flowers and pays 40 coins; progress in Journal, Clean skies |
+| Rescued animals | A sky hen, cloud goat and moss turtle are trapped in smog heaps; once freed they live on Home Isle and leave a daily gift (tomato seeds, fiber, compost) |
 | Skills | Gardening, foraging, crafting, engineering, fishing, cooking (level 1 to 10) |
 | Kopi | A small sky fox who follows you, likes pats and fish, and sometimes finds things |
 | Play together | Open plaza or private room code; see other players, say preset phrases, pool project deliveries |
