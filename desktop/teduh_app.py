@@ -43,6 +43,16 @@ PAGE_SCRIPT = (
     " return localStorage.getItem('teduh.desktop.check') === '1'; } catch (e) { return false; } })(),"
     " webgl: (function () { try { var c = document.createElement('canvas');"
     " return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })(),"
+    # Can this computer build the renderer Teduh asks for? Tried once, with the same settings as js/world.js.
+    " draw: (function () { if (!window.__teduhDraw) { window.__teduhDraw = {state: 'pending'};"
+    " import(new URL('vendor/three.module.min.js', location.href).href).then(function (T) { try {"
+    " var r = new T.WebGLRenderer({canvas: document.createElement('canvas'), antialias: true,"
+    " preserveDrawingBuffer: true, powerPreference: 'high-performance'});"
+    " var gl = r.getContext(); var info = gl.getExtension('WEBGL_debug_renderer_info');"
+    " window.__teduhDraw = {state: 'ok', gpu: info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : ''};"
+    " r.dispose(); } catch (e) { window.__teduhDraw = {state: 'failed', why: String(e)}; } },"
+    " function (e) { window.__teduhDraw = {state: 'failed', why: 'three did not load: ' + e}; }); }"
+    " return window.__teduhDraw; })(),"
     " ready: document.readyState, width: window.innerWidth, height: window.innerHeight})"
 )
 

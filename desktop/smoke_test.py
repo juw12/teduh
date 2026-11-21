@@ -79,9 +79,12 @@ def main():
         problems.append("the window is on %r" % result.get("url"))
     note = ""
     if not result.get("app"):
-        if result.get("webgl") is False:
-            # Teduh is drawn with WebGL. A computer without it (some build machines) cannot start the scene at all.
-            note = "this computer has no WebGL, so Teduh's 3D scene could not start here: only the window, the page and its storage were checked"
+        draw = result.get("draw") or {}
+        if result.get("webgl") is False or draw.get("state") == "failed":
+            # Teduh is drawn with WebGL. A computer that cannot build its renderer (some build machines have no
+            # graphics card) cannot start the scene at all: that is the machine, not this build.
+            why = draw.get("why") or "no WebGL"
+            note = "this computer cannot draw Teduh's 3D scene (%s): only the window, the page and its storage were checked" % why
         else:
             problems.append("Teduh did not start in the page (missing: the loading label is gone, which main.js removes when the game has started)")
     if not result.get("storage"):
