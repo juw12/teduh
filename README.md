@@ -61,7 +61,7 @@ Teduh is the same on every device: the apps below open the same site in their ow
 | **Mac with Apple chip (M1 and newer)** | [Teduh-macOS-AppleSilicon.dmg](https://github.com/juw12/teduh/releases/download/apps/Teduh-macOS-AppleSilicon.dmg) | Open it and drag Teduh to Applications. The first time, macOS blocks it: **System Settings → Privacy & Security → Open Anyway**. |
 | **Mac with Intel chip** | [Teduh-macOS-Intel.dmg](https://github.com/juw12/teduh/releases/download/apps/Teduh-macOS-Intel.dmg) | Same as above. |
 | **iPhone / iPad** | [Open in Safari](https://juw12.github.io/teduh/) | Share → **Add to Home Screen**. |
-| **Android** | [Open in Chrome](https://juw12.github.io/teduh/) | Menu → **Add to Home screen** / **Install app**. There is no .apk yet. |
+| **Android** | [Teduh-android.apk](https://github.com/juw12/teduh/releases/download/apps/Teduh-android.apk) | Download, open the file, allow installing from your browser. A full-screen window around the live game: your save stays on the phone, it opens offline after the first visit, and saving a file goes through Android. Built and signed (v1.0.0), not yet run on a device. Or [open in Chrome](https://juw12.github.io/teduh/) → **Install app**. |
 
 The desktop app's source is in [`desktop/`](desktop/README.md); every file and its checksum is in the [apps release](https://github.com/juw12/teduh/releases/tag/apps).
 
