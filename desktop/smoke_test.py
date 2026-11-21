@@ -77,14 +77,24 @@ def main():
         problems.append("page title is %r" % result.get("title"))
     if not str(result.get("url") or "").startswith(url):
         problems.append("the window is on %r" % result.get("url"))
+    note = ""
     if not result.get("app"):
-        problems.append("Teduh did not start in the page (missing: the loading label is gone, which main.js removes when the game has started)")
+        if result.get("webgl") is False:
+            # Teduh is drawn with WebGL. A computer without it (some build machines) cannot start the scene at all.
+            note = "this computer has no WebGL, so Teduh's 3D scene could not start here: only the window, the page and its storage were checked"
+        else:
+            problems.append("Teduh did not start in the page (missing: the loading label is gone, which main.js removes when the game has started)")
     if not result.get("storage"):
         problems.append("the page cannot store data")
     if result.get("version") != version:
         problems.append("the app says version %r, desktop/shell.json says %r" % (result.get("version"), version))
     if problems:
         raise SystemExit("FAILED: " + "; ".join(problems))
+    if note:
+        if os.environ.get("GITHUB_ACTIONS"):
+            print("::warning title=Teduh not started::" + note, flush=True)
+        print("PARTLY CHECKED: Teduh %s opened its window (%s), but %s" % (version, result.get("toolkit"), note))
+        return
     print("OK: Teduh %s opened in its own window (%s) in %.0f s" % (version, result.get("toolkit"), time.time() - started))
 
 

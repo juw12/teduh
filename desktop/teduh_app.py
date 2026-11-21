@@ -41,6 +41,8 @@ PAGE_SCRIPT = (
     " app: (!document.getElementById('boot') && !!document.getElementById('scene')),"
     " storage: (function () { try { localStorage.setItem('teduh.desktop.check', '1');"
     " return localStorage.getItem('teduh.desktop.check') === '1'; } catch (e) { return false; } })(),"
+    " webgl: (function () { try { var c = document.createElement('canvas');"
+    " return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })(),"
     " ready: document.readyState, width: window.innerWidth, height: window.innerHeight})"
 )
 
