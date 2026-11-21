@@ -791,7 +791,9 @@ function skyColor(tod, out) {
 }
 
 export function createWorld(canvas, { quality = 'high' } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality === 'high', preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+  // Antialiasing is on for both graphics settings: without it, and at 1x pixels, the Light setting that
+  // every phone starts on drew the island blocky and blurred on a 2x-3x phone screen.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
@@ -1046,7 +1048,8 @@ export function createWorld(canvas, { quality = 'high' } = {}) {
 
   world.setQuality = (q) => {
     world.quality = q;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : 1));
+    // Light saves its work by dropping shadows, not by dropping below a sharp picture (it was 1x).
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : 1.5));
     renderer.shadowMap.enabled = q === 'high';
     sun.castShadow = q === 'high';
     materialCache.forEach((m) => {
