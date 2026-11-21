@@ -1,0 +1,9 @@
+{
+  "name": "Teduh",
+  "id": "io.github.juw12.teduh",
+  "url": "https://juw12.github.io/teduh/",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 24,
+  "targetSdk": 34
+}
