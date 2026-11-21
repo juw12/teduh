@@ -51,6 +51,21 @@
 </p>
 <!-- HERO:END -->
 
+## Get Teduh
+
+Teduh is the same on every device: the apps below open the same site in their own window, so new versions arrive without a reinstall.
+
+| Your device | Download | How to install |
+|---|---|---|
+| **Windows 10/11** | [Teduh-Windows-Setup.exe](https://github.com/juw12/teduh/releases/download/apps/Teduh-Windows-Setup.exe) | Open it and press Install (no admin needed). If Windows says it protected your PC, choose **More info → Run anyway** (the app is not code-signed yet). Without installing: [Teduh-Windows-Portable.zip](https://github.com/juw12/teduh/releases/download/apps/Teduh-Windows-Portable.zip). |
+| **Mac with Apple chip (M1 and newer)** | [Teduh-macOS-AppleSilicon.dmg](https://github.com/juw12/teduh/releases/download/apps/Teduh-macOS-AppleSilicon.dmg) | Open it and drag Teduh to Applications. The first time, macOS blocks it: **System Settings → Privacy & Security → Open Anyway**. |
+| **Mac with Intel chip** | [Teduh-macOS-Intel.dmg](https://github.com/juw12/teduh/releases/download/apps/Teduh-macOS-Intel.dmg) | Same as above. |
+| **iPhone / iPad** | [Open in Safari](https://juw12.github.io/teduh/) | Share → **Add to Home Screen**. |
+| **Android** | [Open in Chrome](https://juw12.github.io/teduh/) | Menu → **Add to Home screen** / **Install app**. There is no .apk yet. |
+
+The desktop app's source is in [`desktop/`](desktop/README.md); every file and its checksum is in the [apps release](https://github.com/juw12/teduh/releases/tag/apps).
+
+
 ## About
 
 Teduh (Indonesian for "sheltered, calm") is a cozy life sim set on floating islands above the clouds. You start with
