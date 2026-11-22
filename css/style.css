@@ -243,6 +243,8 @@ body:has(.panel[open]) .dock, body:has(.panel[open]) .goal, body:has(.panel[open
 @media (hover: none) and (pointer: coarse) {
   .action-btn kbd { display: none; }
   .action-btn { padding: 0 24px; }
+  /* Safari zooms the whole page when a field with text under 16 px is tapped (found by Tilik) */
+  .input { font-size: 16px; }
 }
 
 /* ---------- how-to-play guide ---------- */

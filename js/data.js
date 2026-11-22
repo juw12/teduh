@@ -3,7 +3,7 @@
 
 import { expandWorld } from './farskies.js';
 
-export const VERSION = '1.5.1';
+export const VERSION = '1.5.2';
 export const DAY_LENGTH = 600; // seconds of play per in-game day (10 minutes)
 export const START_TIME_OF_DAY = 0.3; // a new save starts in the early morning
 
