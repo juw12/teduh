@@ -318,7 +318,12 @@ async () => {
   T.teleport(0, 2.5);
   const z0 = s.pos.z;
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
-  await new Promise((r) => setTimeout(r, 600));
+  // W is held until the player has moved, 600 ms at least and 6 s at most: a step is taken per drawn frame,
+  // and a computer that draws few frames a second walks less far in 600 ms than the check asks for
+  const walkStart = performance.now();
+  while (performance.now() - walkStart < 6000 && (performance.now() - walkStart < 600 || s.pos.z >= z0 - 0.5)) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
   window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w' }));
   ok('W walks the player forward', s.pos.z < z0 - 0.5, `${z0} -> ${s.pos.z}`);
   ok('player is still on walkable ground', S.walkable(s, s.pos.x, s.pos.z));
@@ -393,7 +398,12 @@ def run(args):
         page.wait_for_timeout(1200)
         check("starting a game shows the HUD", page.locator("#hud").is_visible())
         check("the new player has a sanitised look", page.evaluate("() => { const l = window.teduh.game.s.look; return Boolean(l && l.skin && l.hair && l.top); }"))
-        check("goal card shows the first goal", "tree" in page.inner_text("#goalText").lower())
+        # the goal is written by the game's own frame: on a computer that draws 6 frames a second it is not there after 1.2 s
+        try:
+            page.wait_for_function("() => /tree/i.test(document.getElementById('goalText').textContent)", timeout=15000)
+        except Exception:
+            pass
+        check("goal card shows the first goal", "tree" in page.inner_text("#goalText").lower(), page.inner_text("#goalText"))
         nonblank = page.evaluate("""() => { const c = document.getElementById('scene'); const g = document.createElement('canvas'); g.width = 64; g.height = 64;
             const x = g.getContext('2d'); x.drawImage(c, 0, 0, 64, 64); const d = x.getImageData(0, 0, 64, 64).data; const set = new Set();
             for (let i = 0; i < d.length; i += 16) set.add(d[i] >> 4 << 8 | d[i + 1] >> 4 << 4 | d[i + 2] >> 4); return set.size; }""")
